@@ -49,8 +49,43 @@ exchange apps. No third-party branding, UI, text, or assets are copied.
 - Production moderation tooling
 - Video/audio calls
 - Payments
-- Filtering Discover/Matches by blocks (blocks are recorded but not yet
-  enforced in queries)
+
+## Prompt004 hardening
+
+Local hardening applied on top of the Prompt001 MVP (no Firebase credentials
+required for any of it):
+
+- **Block filtering (client-side).** Discover excludes users you blocked and
+  users who blocked you; Matches hides matches whose partner is blocked in
+  either direction (`listBlocksForUser` / `listenBlocksForUser` in
+  `src/repositories/safetyRepository.ts` — two single-field queries merged, no
+  composite index needed). If the block list fails to load, the screens stay
+  usable and show a non-fatal warning. **This is a UX feature, not a security
+  boundary** — production still needs deployed Firestore rules and/or server
+  enforcement (see `firestore.rules.example`).
+- **Query limits.** Discover profiles: 50 (`listDiscoverableProfiles`).
+  Matches: 50 (`listMatchesForUser` / `listenMatchesForUser`). Chat messages:
+  most recent 100, still rendered oldest-first (`listenMessages` uses
+  `orderBy createdAt asc` + `limitToLast`). All limits are overridable
+  parameters.
+- **Error handling.** Shared `getErrorMessage` (`src/utils/errorMessage.ts`)
+  returns safe human-readable messages and never stringifies arbitrary
+  objects; `logDevError` (`src/utils/logging.ts`) logs concise context-tagged
+  warnings in development only. Firestore listeners now surface errors to the
+  UI (Matches/Chat warnings) instead of failing silently. Missing Firebase
+  config produces: "Firebase is not configured. Add EXPO_PUBLIC_FIREBASE_*
+  values to .env and restart Expo."
+- **Preview mode vs real Firebase mode.** Preview mode exists for a
+  credential-free demo: with no `.env`, Discover shows clearly-labeled mock
+  profiles and **preview data is never written to Firestore** — Connect,
+  Report, and Block on preview profiles show a "Preview only — nothing was
+  saved" notice instead of writing. Real mode requires the
+  `EXPO_PUBLIC_FIREBASE_*` values in `.env`.
+- **Empty messages** are rejected at the repository level (trimmed before
+  writing; empty text throws a friendly error).
+- **Firebase E2E remains pending.** Nothing in this hardening pass has been
+  verified against a real Firebase project yet; `firestore.rules.example`
+  remains example-only and undeployed.
 
 ## Setup
 
@@ -108,18 +143,42 @@ npm run test:types # TypeScript check (tsc --noEmit)
 
 ## Manual verification checklist
 
-1. `cp .env.example .env`
-2. Fill in the Firebase config values
-3. `npm install`
-4. `npm run web` (or `npx expo start`)
-5. Sign up with a new email/password
-6. Complete onboarding (name, languages, level, goal, bio) and save
-7. Browse Discover (with a second account discoverable you see real profiles;
-   otherwise clearly-labeled preview data)
-8. Connect with a profile (with two accounts connecting to each other, a match
-   is created)
-9. Open Matches
-10. Open Chat from a match
-11. Send a message (it appears in realtime for both accounts)
-12. Tap Translate / Correct / Suggest Reply in the chat support bar
-13. Open a profile via View Profile and test Report and Block
+### A. No-Firebase mode (no credentials needed)
+
+1. Ensure no `.env` (or empty values)
+2. `npm install`
+3. `npm run test:types` — passes
+4. `npx expo export --platform web` — builds without credentials
+5. `npm run web` — SetupRequiredScreen appears; the app does not crash
+
+### B. Firebase mode
+
+1. `cp .env.example .env` and fill in the Firebase config values (never commit `.env`)
+2. `npm install`
+3. `npx expo start -c` (cache clear so new env values are inlined), then open web/Expo Go
+4. Sign up with a new email/password
+5. Complete onboarding (name, languages, level, goal, bio) and save
+
+### C. Two-account match
+
+6. Sign up a second account (second browser profile or device) and complete its profile
+7. Browse Discover on both (real profiles appear, limited to 50; otherwise
+   clearly-labeled preview data)
+8. Account A connects to B, then B connects to A — a match is created only on
+   mutual connect
+
+### D. Chat
+
+9. Open Matches → open the Chat
+10. Send a message (appears in realtime for both accounts; empty messages are
+    rejected; only the most recent 100 messages are loaded)
+11. Tap Translate / Correct / Suggest Reply in the chat support bar (mock
+    previews only)
+
+### E. Block / report
+
+12. From View Profile, account A blocks B → A is navigated back, and B
+    disappears from A's Discover and Matches
+13. Report a profile → confirmation appears; a record lands in `reports/{autoId}`
+14. In preview mode (no Firebase), Connect/Report/Block show "Preview only —
+    nothing was saved" and write nothing

@@ -2,25 +2,39 @@ import {
   addDoc,
   collection,
   doc,
+  limitToLast,
   onSnapshot,
   orderBy,
   query,
   serverTimestamp,
   setDoc,
 } from "firebase/firestore";
-import { requireDb } from "../firebase/config";
+import { getConfiguredDb } from "./firestoreHelpers";
 import type { ChatMessage } from "../types/domain";
 
 function messagesCollection(matchId: string) {
-  return collection(requireDb(), "matches", matchId, "messages");
+  return collection(getConfiguredDb(), "matches", matchId, "messages");
 }
 
+export const MESSAGES_QUERY_LIMIT = 100;
+
+/**
+ * Listens to the most recent `limitCount` messages, delivered in
+ * createdAt-ascending order (limitToLast keeps the newest window, so fresh
+ * messages never fall outside the limit).
+ */
 export function listenMessages(
   matchId: string,
-  callback: (messages: ChatMessage[]) => void
+  callback: (messages: ChatMessage[]) => void,
+  onError?: (error: Error) => void,
+  limitCount: number = MESSAGES_QUERY_LIMIT
 ): () => void {
   return onSnapshot(
-    query(messagesCollection(matchId), orderBy("createdAt", "asc")),
+    query(
+      messagesCollection(matchId),
+      orderBy("createdAt", "asc"),
+      limitToLast(limitCount)
+    ),
     (snapshot) => {
       callback(
         snapshot.docs.map((d) => ({
@@ -28,6 +42,9 @@ export function listenMessages(
           id: d.id,
         }))
       );
+    },
+    (error) => {
+      onError?.(error);
     }
   );
 }
@@ -42,8 +59,10 @@ export async function sendMessage(
   text: string
 ): Promise<void> {
   const trimmed = text.trim();
-  if (!trimmed) return;
-  const db = requireDb();
+  if (!trimmed) {
+    throw new Error("Message text is empty. Write something before sending.");
+  }
+  const db = getConfiguredDb();
   const message: ChatMessage = {
     fromUid,
     text: trimmed,

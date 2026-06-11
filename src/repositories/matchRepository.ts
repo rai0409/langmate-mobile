@@ -3,13 +3,14 @@ import {
   doc,
   getDoc,
   getDocs,
+  limit,
   onSnapshot,
   query,
   serverTimestamp,
   setDoc,
   where,
 } from "firebase/firestore";
-import { requireDb } from "../firebase/config";
+import { getConfiguredDb } from "./firestoreHelpers";
 import type { Match } from "../types/domain";
 import { getSwipe } from "./swipeRepository";
 
@@ -28,7 +29,7 @@ export async function createMatchIfMutualConnect(
   currentUid: string,
   targetUid: string
 ): Promise<Match | null> {
-  const db = requireDb();
+  const db = getConfiguredDb();
   const matchId = buildMatchId(currentUid, targetUid);
 
   const existing = await getDoc(doc(db, MATCHES, matchId));
@@ -53,25 +54,43 @@ export async function createMatchIfMutualConnect(
   return match;
 }
 
-export async function listMatchesForUser(uid: string): Promise<Match[]> {
-  const db = requireDb();
+export const MATCHES_QUERY_LIMIT = 50;
+
+export async function listMatchesForUser(
+  uid: string,
+  limitCount: number = MATCHES_QUERY_LIMIT
+): Promise<Match[]> {
+  const db = getConfiguredDb();
   const snapshot = await getDocs(
-    query(collection(db, MATCHES), where("memberUids", "array-contains", uid))
+    query(
+      collection(db, MATCHES),
+      where("memberUids", "array-contains", uid),
+      limit(limitCount)
+    )
   );
   return snapshot.docs.map((d) => ({ ...(d.data() as Match), matchId: d.id }));
 }
 
 export function listenMatchesForUser(
   uid: string,
-  callback: (matches: Match[]) => void
+  callback: (matches: Match[]) => void,
+  onError?: (error: Error) => void,
+  limitCount: number = MATCHES_QUERY_LIMIT
 ): () => void {
-  const db = requireDb();
+  const db = getConfiguredDb();
   return onSnapshot(
-    query(collection(db, MATCHES), where("memberUids", "array-contains", uid)),
+    query(
+      collection(db, MATCHES),
+      where("memberUids", "array-contains", uid),
+      limit(limitCount)
+    ),
     (snapshot) => {
       callback(
         snapshot.docs.map((d) => ({ ...(d.data() as Match), matchId: d.id }))
       );
+    },
+    (error) => {
+      onError?.(error);
     }
   );
 }

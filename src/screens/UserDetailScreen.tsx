@@ -17,7 +17,9 @@ import { blockUser, reportUser } from "../repositories/safetyRepository";
 import { createSwipe } from "../repositories/swipeRepository";
 import { colors, radius, spacing, typography } from "../theme/theme";
 import type { RootStackParamList } from "../types/navigation";
-import { errorMessage, notify } from "../utils/notify";
+import { getErrorMessage } from "../utils/errorMessage";
+import { logDevError } from "../utils/logging";
+import { notify } from "../utils/notify";
 
 type Props = NativeStackScreenProps<RootStackParamList, "UserDetail">;
 
@@ -26,11 +28,13 @@ export function UserDetailScreen({ route, navigation }: Props) {
   const { currentUser } = useAuth();
   const [busy, setBusy] = useState(false);
 
+  // Preview/mock profiles must never produce Firestore writes: every action
+  // below goes through this guard before touching a repository.
   const guardWrites = (): boolean => {
     if (isPreview || !hasFirebaseConfig() || !currentUser) {
       notify(
-        "Preview data",
-        "This is a sample profile. Actions work once Firebase is set up and real users join."
+        "Preview only — nothing was saved",
+        "This is a sample profile shown in preview mode. Connect, Report, and Block start working once Firebase is set up and real users join."
       );
       return false;
     }
@@ -58,7 +62,8 @@ export function UserDetailScreen({ route, navigation }: Props) {
         );
       }
     } catch (e) {
-      notify("Could not connect", errorMessage(e));
+      logDevError("UserDetailScreen.connect", e);
+      notify("Could not connect", getErrorMessage(e));
     } finally {
       setBusy(false);
     }
@@ -71,7 +76,8 @@ export function UserDetailScreen({ route, navigation }: Props) {
       await reportUser(currentUser!.uid, profile.uid, "MVP report");
       notify("Report sent", "Thank you. Our team will review this profile.");
     } catch (e) {
-      notify("Could not send report", errorMessage(e));
+      logDevError("UserDetailScreen.report", e);
+      notify("Could not send report", getErrorMessage(e));
     } finally {
       setBusy(false);
     }
@@ -82,10 +88,14 @@ export function UserDetailScreen({ route, navigation }: Props) {
     setBusy(true);
     try {
       await blockUser(currentUser!.uid, profile.uid);
-      notify("User blocked", `${profile.displayName} has been blocked.`);
+      notify(
+        "User blocked",
+        `${profile.displayName} has been blocked and will be hidden from your Discover and Matches.`
+      );
       navigation.goBack();
     } catch (e) {
-      notify("Could not block user", errorMessage(e));
+      logDevError("UserDetailScreen.block", e);
+      notify("Could not block user", getErrorMessage(e));
     } finally {
       setBusy(false);
     }

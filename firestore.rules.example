@@ -2,9 +2,23 @@
 // EXAMPLE ONLY — NOT DEPLOYED
 // ============================================================
 // These rules describe the intended access model for LangMate.
-// They have NOT been deployed and have NOT been tested against
-// the Firestore emulator. Review and adapt before deploying with:
-//   firebase deploy --only firestore:rules
+// They have NOT been deployed and have NOT been tested.
+//
+// Before any production use:
+//   1. Validate every rule in the Firebase Emulator Suite
+//      (firebase emulators:start --only firestore) with unit tests.
+//   2. Deploy only after validation:
+//      firebase deploy --only firestore:rules
+//
+// Production notes:
+//   - Mutual-connect match creation cannot be fully validated by rules
+//     alone (it requires reading two swipe docs atomically). Production
+//     should enforce match creation in a Cloud Function (or other
+//     trusted server code) and tighten `matches` create to that path.
+//   - Moderation workflows (acting on reports, admin tooling) also
+//     belong in Cloud Functions / Admin SDK contexts, not client rules.
+//   - Client-side block filtering in the app is a UX feature, NOT a
+//     security boundary; these rules are the actual boundary.
 // ============================================================
 
 rules_version = '2';
@@ -16,64 +30,113 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    // Main profiles always live at profiles/{uid}.
+    // ----------------------------------------------------------
+    // profiles/{uid} — main profile always lives at the auth uid.
+    // ----------------------------------------------------------
     match /profiles/{uid} {
-      // Readable when discoverable, or by the owner.
+      // Owner can always read their own profile; other authenticated
+      // users can read only discoverable profiles. Non-discoverable
+      // profiles are readable by the owner alone.
       allow read: if signedIn()
-        && (resource.data.isDiscoverable == true || request.auth.uid == uid);
-      // Writable only by the owner.
-      allow create, update: if signedIn() && request.auth.uid == uid;
+        && (request.auth.uid == uid || resource.data.isDiscoverable == true);
+      // Writable only by the owner, and the embedded uid field must
+      // match the document id (no spoofed profile docs).
+      allow create, update: if signedIn()
+        && request.auth.uid == uid
+        && request.resource.data.uid == uid;
       allow delete: if false;
     }
 
-    // Swipe doc id is `${fromUid}_${toUid}`.
+    // ----------------------------------------------------------
+    // swipes/{fromUid_toUid}
+    // ----------------------------------------------------------
     match /swipes/{swipeId} {
-      // Writable only by the swiping user (fromUid).
+      // Only the swiping user can write, the doc id must match its
+      // contents, and fromUid can never be spoofed.
       allow create, update: if signedIn()
         && request.resource.data.fromUid == request.auth.uid
+        && request.resource.data.toUid is string
+        && request.resource.data.toUid != request.auth.uid
         && swipeId == request.resource.data.fromUid + '_' + request.resource.data.toUid;
-      // Readable by either side of the swipe (needed for mutual-connect check).
+      // Readable by either side (the target needs it for the
+      // mutual-connect check).
       allow read: if signedIn()
         && (resource.data.fromUid == request.auth.uid
             || resource.data.toUid == request.auth.uid);
       allow delete: if false;
     }
 
-    // Match doc id is the sorted uid pair joined by "_".
+    // ----------------------------------------------------------
+    // matches/{sortedUidA_sortedUidB}
+    // ----------------------------------------------------------
     match /matches/{matchId} {
       // Readable only by members.
       allow read: if signedIn() && request.auth.uid in resource.data.memberUids;
-      // Creatable by a member who includes themselves in memberUids.
+      // Client-side creation requires the creator to be a member of a
+      // two-member match. True mutual-connect validation (both swipe
+      // docs are "connect") is too complex to express safely here —
+      // production should move match creation into a Cloud Function
+      // and set this to `if false`.
       allow create: if signedIn()
-        && request.auth.uid in request.resource.data.memberUids;
-      // lastMessage/lastSentAt updates by members only.
-      allow update: if signedIn() && request.auth.uid in resource.data.memberUids;
+        && request.auth.uid in request.resource.data.memberUids
+        && request.resource.data.memberUids.size() == 2;
+      // Members may update only the denormalized chat preview fields;
+      // membership itself is immutable from the client.
+      allow update: if signedIn()
+        && request.auth.uid in resource.data.memberUids
+        && request.resource.data.diff(resource.data).affectedKeys()
+             .hasOnly(['lastMessage', 'lastSentAt']);
       allow delete: if false;
 
-      // Messages readable/writable only by match members.
+      // --------------------------------------------------------
+      // matches/{matchId}/messages/{autoId}
+      // --------------------------------------------------------
       match /messages/{messageId} {
+        // Readable only by match members.
         allow read: if signedIn()
           && request.auth.uid in get(/databases/$(database)/documents/matches/$(matchId)).data.memberUids;
+        // Creatable only by match members, fromUid must be the real
+        // authenticated uid, and text must be a non-empty string.
         allow create: if signedIn()
           && request.resource.data.fromUid == request.auth.uid
-          && request.auth.uid in get(/databases/$(database)/documents/matches/$(matchId)).data.memberUids;
+          && request.auth.uid in get(/databases/$(database)/documents/matches/$(matchId)).data.memberUids
+          && request.resource.data.text is string
+          && request.resource.data.text.size() > 0;
         allow update, delete: if false;
       }
     }
 
-    // Block doc id is `${blockerUid}_${blockedUid}`.
+    // ----------------------------------------------------------
+    // blocks/{blockerUid_blockedUid}
+    // ----------------------------------------------------------
     match /blocks/{blockId} {
-      // Writable by the blocker only.
+      // Only the blocker can create their own block, and the doc id
+      // must match its contents.
       allow create: if signedIn()
-        && request.resource.data.blockerUid == request.auth.uid;
-      allow read: if signedIn() && resource.data.blockerUid == request.auth.uid;
+        && request.resource.data.blockerUid == request.auth.uid
+        && request.resource.data.blockedUid is string
+        && request.resource.data.blockedUid != request.auth.uid
+        && blockId == request.resource.data.blockerUid + '_' + request.resource.data.blockedUid;
+      // Readable by both sides: the app filters Discover/Matches using
+      // outgoing AND incoming blocks, so the blocked user may read the
+      // record's existence too.
+      allow read: if signedIn()
+        && (resource.data.blockerUid == request.auth.uid
+            || resource.data.blockedUid == request.auth.uid);
       allow update, delete: if false;
     }
 
-    // Reports are append-only for any authenticated user.
+    // ----------------------------------------------------------
+    // reports/{autoId} — append-only from clients.
+    // ----------------------------------------------------------
     match /reports/{reportId} {
       allow create: if signedIn()
-        && request.resource.data.reporterUid == request.auth.uid;
+        && request.resource.data.reporterUid == request.auth.uid
+        && request.resource.data.reportedUid is string
+        && request.resource.data.reason is string;
+      // No client reads: in production, reports should be readable only
+      // by admin/moderation tooling (Admin SDK or Cloud Functions, which
+      // bypass these rules).
       allow read, update, delete: if false;
     }
   }

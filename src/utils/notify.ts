@@ -1,4 +1,5 @@
 import { Alert, Platform } from "react-native";
+import { getErrorMessage } from "./errorMessage";
 
 /** Cross-platform alert: Alert.alert is a no-op on react-native-web. */
 export function notify(title: string, message?: string): void {
@@ -10,7 +11,7 @@ export function notify(title: string, message?: string): void {
   Alert.alert(title, message);
 }
 
+/** Kept for existing callers; delegates to the shared safe error formatter. */
 export function errorMessage(error: unknown): string {
-  if (error instanceof Error) return error.message;
-  return String(error);
+  return getErrorMessage(error);
 }

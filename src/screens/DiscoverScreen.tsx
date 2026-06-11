@@ -11,6 +11,12 @@ import { hasFirebaseConfig } from "../firebase/config";
 import { MOCK_CURRENT_PROFILE, MOCK_PROFILES } from "../lib/mockData";
 import { createMatchIfMutualConnect } from "../repositories/matchRepository";
 import { listDiscoverableProfiles } from "../repositories/profileRepository";
+import {
+  isUidBlocked,
+  listBlocksForUser,
+  toBlockSets,
+  type BlockSets,
+} from "../repositories/safetyRepository";
 import { createSwipe } from "../repositories/swipeRepository";
 import {
   filterAndRankCandidates,
@@ -18,7 +24,9 @@ import {
 } from "../services/matchingService";
 import { colors, spacing, typography } from "../theme/theme";
 import type { RootStackParamList } from "../types/navigation";
-import { errorMessage, notify } from "../utils/notify";
+import { getErrorMessage } from "../utils/errorMessage";
+import { logDevError } from "../utils/logging";
+import { notify } from "../utils/notify";
 
 const PREVIEW_LABEL = "Preview data";
 
@@ -32,6 +40,7 @@ export function DiscoverScreen() {
   const [isPreview, setIsPreview] = useState(false);
   const [loading, setLoading] = useState(true);
   const [hiddenUids, setHiddenUids] = useState<Set<string>>(new Set());
+  const [blockWarning, setBlockWarning] = useState<string | null>(null);
 
   const currentProfile = profile ?? MOCK_CURRENT_PROFILE;
 
@@ -43,8 +52,31 @@ export function DiscoverScreen() {
         preview: true,
       };
       if (hasFirebaseConfig()) {
+        // Block filtering is best-effort here: if the block query fails,
+        // Discover still renders, with a visible warning instead of a crash.
+        let blockSets: BlockSets = {
+          blockedByMe: new Set(),
+          blockedMe: new Set(),
+        };
+        if (currentUser) {
+          try {
+            blockSets = toBlockSets(
+              currentUser.uid,
+              await listBlocksForUser(currentUser.uid)
+            );
+            setBlockWarning(null);
+          } catch (e) {
+            logDevError("DiscoverScreen.loadBlocks", e);
+            setBlockWarning(
+              "Could not load your block list — some blocked users may appear until you reload."
+            );
+          }
+        }
         const real = await listDiscoverableProfiles();
-        const others = real.filter((p) => p.uid !== currentUser?.uid);
+        const others = real.filter(
+          (p) =>
+            p.uid !== currentUser?.uid && !isUidBlocked(blockSets, p.uid)
+        );
         if (others.length > 0) {
           pool = { profiles: others, preview: false };
         }
@@ -52,13 +84,14 @@ export function DiscoverScreen() {
       setIsPreview(pool.preview);
       setCandidates(filterAndRankCandidates(currentProfile, pool.profiles));
     } catch (e) {
-      notify("Could not load profiles", errorMessage(e));
+      logDevError("DiscoverScreen.load", e);
+      notify("Could not load profiles", getErrorMessage(e));
       setIsPreview(true);
       setCandidates(filterAndRankCandidates(currentProfile, MOCK_PROFILES));
     } finally {
       setLoading(false);
     }
-  }, [currentUser?.uid, currentProfile]);
+  }, [currentUser, currentProfile]);
 
   useEffect(() => {
     load();
@@ -74,7 +107,8 @@ export function DiscoverScreen() {
     try {
       await createSwipe(currentUser.uid, candidate.profile.uid, "skip");
     } catch (e) {
-      notify("Could not save skip", errorMessage(e));
+      logDevError("DiscoverScreen.skip", e);
+      notify("Could not save skip", getErrorMessage(e));
     }
   };
 
@@ -106,7 +140,8 @@ export function DiscoverScreen() {
         );
       }
     } catch (e) {
-      notify("Could not connect", errorMessage(e));
+      logDevError("DiscoverScreen.connect", e);
+      notify("Could not connect", getErrorMessage(e));
     }
   };
 
@@ -118,6 +153,9 @@ export function DiscoverScreen() {
 
   return (
     <View style={styles.screen}>
+      {blockWarning ? (
+        <Text style={styles.blockWarning}>{blockWarning}</Text>
+      ) : null}
       {visible.length === 0 ? (
         <EmptyState
           title="No more partners right now"
@@ -178,5 +216,11 @@ const styles = StyleSheet.create({
     ...typography.caption,
     color: colors.danger,
     marginBottom: spacing.md,
+  },
+  blockWarning: {
+    ...typography.caption,
+    color: colors.danger,
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.md,
   },
 });

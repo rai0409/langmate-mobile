@@ -20,7 +20,9 @@ import {
 import { colors, radius, spacing, typography } from "../theme/theme";
 import type { ChatMessage } from "../types/domain";
 import type { RootStackParamList } from "../types/navigation";
-import { errorMessage, notify } from "../utils/notify";
+import { getErrorMessage } from "../utils/errorMessage";
+import { logDevError } from "../utils/logging";
+import { notify } from "../utils/notify";
 
 type Props = NativeStackScreenProps<RootStackParamList, "Chat">;
 
@@ -30,11 +32,24 @@ export function ChatScreen({ route }: Props) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [draft, setDraft] = useState("");
   const [supportNote, setSupportNote] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const listRef = useRef<FlatList<ChatMessage>>(null);
 
   useEffect(() => {
     if (!hasFirebaseConfig()) return;
-    const unsubscribe = listenMessages(matchId, setMessages);
+    const unsubscribe = listenMessages(
+      matchId,
+      (next) => {
+        setMessages(next);
+        setLoadError(null);
+      },
+      (error) => {
+        logDevError("ChatScreen.listenMessages", error);
+        setLoadError(
+          "Could not load messages. Check your connection and reopen this chat."
+        );
+      }
+    );
     return unsubscribe;
   }, [matchId]);
 
@@ -51,7 +66,8 @@ export function ChatScreen({ route }: Props) {
       await sendMessage(matchId, currentUser.uid, text);
     } catch (e) {
       setDraft(text);
-      notify("Could not send message", errorMessage(e));
+      logDevError("ChatScreen.send", e);
+      notify("Could not send message", getErrorMessage(e));
     }
   };
 
@@ -91,6 +107,8 @@ export function ChatScreen({ route }: Props) {
           </Text>
         }
       />
+
+      {loadError ? <Text style={styles.loadError}>{loadError}</Text> : null}
 
       {supportNote ? (
         <Pressable style={styles.supportNote} onPress={() => setSupportNote(null)}>
@@ -175,6 +193,12 @@ const styles = StyleSheet.create({
   },
   textTheirs: {
     ...typography.body,
+  },
+  loadError: {
+    ...typography.caption,
+    color: colors.danger,
+    marginHorizontal: spacing.lg,
+    marginBottom: spacing.sm,
   },
   supportNote: {
     marginHorizontal: spacing.lg,

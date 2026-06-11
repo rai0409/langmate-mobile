@@ -1,5 +1,5 @@
 import { doc, getDoc, serverTimestamp, setDoc } from "firebase/firestore";
-import { requireDb } from "../firebase/config";
+import { getConfiguredDb } from "./firestoreHelpers";
 import type { Swipe, SwipeAction } from "../types/domain";
 
 const SWIPES = "swipes";
@@ -13,7 +13,7 @@ export async function createSwipe(
   toUid: string,
   action: SwipeAction
 ): Promise<void> {
-  const db = requireDb();
+  const db = getConfiguredDb();
   const swipe: Swipe = {
     fromUid,
     toUid,
@@ -27,7 +27,7 @@ export async function getSwipe(
   fromUid: string,
   toUid: string
 ): Promise<Swipe | null> {
-  const db = requireDb();
+  const db = getConfiguredDb();
   const snapshot = await getDoc(
     doc(db, SWIPES, buildSwipeId(fromUid, toUid))
   );

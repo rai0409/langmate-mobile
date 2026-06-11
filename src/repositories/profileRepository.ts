@@ -3,20 +3,21 @@ import {
   doc,
   getDoc,
   getDocs,
+  limit,
   onSnapshot,
   query,
   serverTimestamp,
   setDoc,
   where,
 } from "firebase/firestore";
-import { requireDb } from "../firebase/config";
+import { getConfiguredDb } from "./firestoreHelpers";
 import type { Profile } from "../types/domain";
 
 // Main profile documents always live at profiles/{uid}. Never addDoc here.
 const PROFILES = "profiles";
 
 export async function getProfile(uid: string): Promise<Profile | null> {
-  const db = requireDb();
+  const db = getConfiguredDb();
   const snapshot = await getDoc(doc(db, PROFILES, uid));
   if (!snapshot.exists()) return null;
   return { ...(snapshot.data() as Profile), uid };
@@ -26,7 +27,7 @@ export async function upsertProfile(
   uid: string,
   profilePatch: Partial<Profile>
 ): Promise<void> {
-  const db = requireDb();
+  const db = getConfiguredDb();
   await setDoc(
     doc(db, PROFILES, uid),
     {
@@ -45,7 +46,7 @@ export function listenProfile(
   uid: string,
   callback: (profile: Profile | null) => void
 ): () => void {
-  const db = requireDb();
+  const db = getConfiguredDb();
   return onSnapshot(doc(db, PROFILES, uid), (snapshot) => {
     callback(
       snapshot.exists() ? { ...(snapshot.data() as Profile), uid } : null
@@ -53,10 +54,22 @@ export function listenProfile(
   });
 }
 
-export async function listDiscoverableProfiles(): Promise<Profile[]> {
-  const db = requireDb();
+export const DISCOVER_QUERY_LIMIT = 50;
+
+/**
+ * Returns up to `limitCount` discoverable profiles. Real Firestore data only —
+ * mock/preview profiles never come from this function.
+ */
+export async function listDiscoverableProfiles(
+  limitCount: number = DISCOVER_QUERY_LIMIT
+): Promise<Profile[]> {
+  const db = getConfiguredDb();
   const snapshot = await getDocs(
-    query(collection(db, PROFILES), where("isDiscoverable", "==", true))
+    query(
+      collection(db, PROFILES),
+      where("isDiscoverable", "==", true),
+      limit(limitCount)
+    )
   );
   return snapshot.docs.map((d) => ({ ...(d.data() as Profile), uid: d.id }));
 }
