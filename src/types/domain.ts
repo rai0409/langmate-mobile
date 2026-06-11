@@ -1,0 +1,97 @@
+export type LanguageCode =
+  | "ja"
+  | "en"
+  | "ko"
+  | "zh"
+  | "es"
+  | "fr"
+  | "de"
+  | "it"
+  | "pt"
+  | "th"
+  | "vi"
+  | "id"
+  | "other";
+
+export type UserLevel =
+  | "beginner"
+  | "elementary"
+  | "intermediate"
+  | "advanced"
+  | "native";
+
+export type LearningGoal =
+  | "daily_conversation"
+  | "business"
+  | "exam"
+  | "travel"
+  | "culture"
+  | "friendship";
+
+export type AvailabilitySlot =
+  | "weekday_morning"
+  | "weekday_daytime"
+  | "weekday_night"
+  | "weekend_morning"
+  | "weekend_daytime"
+  | "weekend_night";
+
+export interface Profile {
+  uid: string;
+  displayName: string;
+  avatarUrl?: string;
+  nativeLang: LanguageCode;
+  targetLang: LanguageCode;
+  level: UserLevel;
+  learningGoal: LearningGoal;
+  interests: string[];
+  availableTimes: AvailabilitySlot[];
+  country?: string;
+  bio: string;
+  isDiscoverable: boolean;
+  createdAt?: unknown;
+  updatedAt?: unknown;
+}
+
+export type SwipeAction = "skip" | "connect";
+
+export interface Swipe {
+  fromUid: string;
+  toUid: string;
+  action: SwipeAction;
+  createdAt?: unknown;
+}
+
+export interface Match {
+  matchId: string;
+  memberUids: string[];
+  createdAt?: unknown;
+  lastMessage?: string;
+  lastSentAt?: unknown;
+}
+
+export interface ChatMessage {
+  id?: string;
+  fromUid: string;
+  text: string;
+  createdAt?: unknown;
+}
+
+export interface Block {
+  blockerUid: string;
+  blockedUid: string;
+  createdAt?: unknown;
+}
+
+export interface Report {
+  reporterUid: string;
+  reportedUid: string;
+  reason: string;
+  createdAt?: unknown;
+}
+
+export interface MatchScoreResult {
+  score: number | null;
+  whyMatched: string[];
+  missingFields: string[];
+}
