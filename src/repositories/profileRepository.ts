@@ -10,7 +10,7 @@ import {
   setDoc,
   where,
 } from "firebase/firestore";
-import { getConfiguredDb } from "./firestoreHelpers";
+import { getConfiguredDb, removeUndefinedFields } from "./firestoreHelpers";
 import type { Profile } from "../types/domain";
 
 // Main profile documents always live at profiles/{uid}. Never addDoc here.
@@ -28,16 +28,18 @@ export async function upsertProfile(
   profilePatch: Partial<Profile>
 ): Promise<void> {
   const db = getConfiguredDb();
+  // Optional fields (country, avatarUrl, …) may arrive as undefined from the
+  // form; Firestore rejects undefined values, so they are omitted entirely.
   await setDoc(
     doc(db, PROFILES, uid),
-    {
+    removeUndefinedFields({
       ...profilePatch,
       uid,
       updatedAt: serverTimestamp(),
       ...(profilePatch.createdAt === undefined
         ? { createdAt: serverTimestamp() }
         : {}),
-    },
+    }),
     { merge: true }
   );
 }
