@@ -17,7 +17,9 @@
     "react-native-web": "^0.21.2"
   },
   "devDependencies": {
+    "@firebase/rules-unit-testing": "^5.0.1",
     "@types/react": "~19.2.2",
+    "firebase-tools": "^15.20.0",
     "typescript": "~6.0.3"
   },
   "scripts": {
@@ -25,7 +27,8 @@
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web",
-    "test:types": "tsc --noEmit"
+    "test:types": "tsc --noEmit",
+    "test:rules": "firebase emulators:exec --only firestore --project demo-langmate \"node rules-tests/firestore.test.mjs\""
   },
   "private": true
 }

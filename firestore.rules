@@ -1,0 +1,155 @@
+// ============================================================
+// LangMate — production-oriented Firestore security rules
+// ============================================================
+// Canonical, deployable rules file. Mirrors the data model written by the
+// repositories in src/repositories/* (the source of truth):
+//   profiles/{uid}                       (setDoc merge; fields incl. uid, isDiscoverable)
+//   swipes/{fromUid}_{toUid}             (setDoc; fromUid, toUid, action, createdAt)
+//   matches/{sortedUidA}_{sortedUidB}    (setDoc merge; matchId, memberUids[2], createdAt; + lastMessage/lastSentAt on update)
+//   matches/{matchId}/messages/{autoId}  (addDoc; fromUid, text, createdAt)
+//   blocks/{blockerUid}_{blockedUid}     (setDoc; blockerUid, blockedUid, createdAt)
+//   reports/{autoId}                     (addDoc; reporterUid, reportedUid, reason, createdAt)
+//
+// VALIDATION & DEPLOY:
+//   - These rules have been exercised with the Firebase Emulator Suite
+//     (npm run test:rules). Re-run after any change.
+//   - Deploy manually only AFTER review:
+//       firebase deploy --only firestore:rules
+//   - Prompt007 did NOT deploy these to the real project.
+//
+// PRODUCTION CAVEATS:
+//   - Mutual-connect match creation cannot be fully proven by rules alone
+//     (it depends on two swipe docs). Client create here only requires the
+//     creator to be one of exactly two members. For stronger guarantees,
+//     move match creation into a Cloud Function and set `create` to false.
+//   - Reports are create-only from clients; reading/acting on them must be
+//     done by admin/moderation tooling (Admin SDK / Cloud Functions, which
+//     bypass these rules). No client may read reports.
+//   - Client-side block filtering in the app is UX, not security; these
+//     rules are the actual boundary.
+// ============================================================
+
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isMember(memberUids) {
+      return signedIn() && request.auth.uid in memberUids;
+    }
+
+    // ----------------------------------------------------------
+    // profiles/{uid} — main profile, always keyed by the auth uid.
+    // ----------------------------------------------------------
+    match /profiles/{uid} {
+      // Owner reads own profile; any signed-in user reads discoverable ones.
+      allow read: if signedIn()
+        && (request.auth.uid == uid || resource.data.isDiscoverable == true);
+      // Only the owner may write, and the embedded uid must match the doc id
+      // (covers both create and the merge-based edit-profile update).
+      allow create, update: if signedIn()
+        && request.auth.uid == uid
+        && request.resource.data.uid == uid;
+      allow delete: if false;
+    }
+
+    // ----------------------------------------------------------
+    // swipes/{fromUid}_{toUid}
+    // ----------------------------------------------------------
+    match /swipes/{swipeId} {
+      // Only the swiping user writes; fromUid cannot be spoofed; the doc id
+      // must equal fromUid_toUid; action is constrained to the app's values.
+      allow create, update: if signedIn()
+        && request.resource.data.fromUid == request.auth.uid
+        && request.resource.data.toUid is string
+        && request.resource.data.toUid != request.auth.uid
+        && request.resource.data.action in ['connect', 'skip']
+        && swipeId == request.resource.data.fromUid + '_' + request.resource.data.toUid;
+      // Either side may read (the target reads the incoming swipe during the
+      // mutual-connect check); no blanket read of all swipes.
+      allow read: if signedIn()
+        && (resource.data.fromUid == request.auth.uid
+            || resource.data.toUid == request.auth.uid);
+      allow delete: if false;
+    }
+
+    // ----------------------------------------------------------
+    // matches/{sortedUidA_sortedUidB}
+    // ----------------------------------------------------------
+    match /matches/{matchId} {
+      // Members only.
+      allow read: if isMember(resource.data.memberUids);
+      // Create requires the creator to be one of exactly two members.
+      allow create: if signedIn()
+        && request.resource.data.memberUids is list
+        && request.resource.data.memberUids.size() == 2
+        && request.auth.uid in request.resource.data.memberUids;
+      // Members may update only the chat-summary fields; membership is
+      // immutable from the client (memberUids can never be in the diff).
+      allow update: if isMember(resource.data.memberUids)
+        && request.resource.data.diff(resource.data).affectedKeys()
+             .hasOnly(['lastMessage', 'lastSentAt', 'updatedAt']);
+      allow delete: if false;
+
+      // --------------------------------------------------------
+      // matches/{matchId}/messages/{autoId}
+      // --------------------------------------------------------
+      match /messages/{messageId} {
+        function matchMembers() {
+          return get(/databases/$(database)/documents/matches/$(matchId)).data.memberUids;
+        }
+        // Members only.
+        allow read: if isMember(matchMembers());
+        // Members create their own messages with non-empty text.
+        allow create: if isMember(matchMembers())
+          && request.resource.data.fromUid == request.auth.uid
+          && request.resource.data.text is string
+          && request.resource.data.text.size() > 0;
+        allow update, delete: if false;
+      }
+    }
+
+    // ----------------------------------------------------------
+    // blocks/{blockerUid}_{blockedUid}
+    // ----------------------------------------------------------
+    match /blocks/{blockId} {
+      // Only the blocker creates their own block; doc id must match contents.
+      allow create, update: if signedIn()
+        && request.resource.data.blockerUid == request.auth.uid
+        && request.resource.data.blockedUid is string
+        && request.resource.data.blockedUid != request.auth.uid
+        && blockId == request.resource.data.blockerUid + '_' + request.resource.data.blockedUid;
+      // Both sides may read (two-direction block filtering needs the blocked
+      // user to see the incoming block).
+      allow read: if signedIn()
+        && (resource.data.blockerUid == request.auth.uid
+            || resource.data.blockedUid == request.auth.uid);
+      // No unblock flow exists in the app yet.
+      allow delete: if false;
+    }
+
+    // ----------------------------------------------------------
+    // reports/{autoId} — append-only from clients.
+    // ----------------------------------------------------------
+    match /reports/{reportId} {
+      allow create: if signedIn()
+        && request.resource.data.reporterUid == request.auth.uid
+        && request.resource.data.reportedUid is string
+        && request.resource.data.reason is string
+        && request.resource.data.reason.size() > 0;
+      // Reads/mutations only via admin tooling (Admin SDK bypasses rules).
+      allow read, update, delete: if false;
+    }
+
+    // ----------------------------------------------------------
+    // Default deny: any path not matched above.
+    // ----------------------------------------------------------
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

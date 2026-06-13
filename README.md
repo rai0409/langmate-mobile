@@ -45,7 +45,9 @@ exchange apps. No third-party branding, UI, text, or assets are copied.
 - Push notifications
 - Media upload (avatars are initials only)
 - Voice messages
-- Deployed Firestore security rules (see `firestore.rules.example`)
+- Deployed Firestore security rules (production-oriented rules exist and are
+  emulator-validated in `firestore.rules`, but are not yet deployed — see
+  **Security rules** below)
 - Production moderation tooling
 - Video/audio calls
 - Payments
@@ -62,7 +64,7 @@ required for any of it):
   composite index needed). If the block list fails to load, the screens stay
   usable and show a non-fatal warning. **This is a UX feature, not a security
   boundary** — production still needs deployed Firestore rules and/or server
-  enforcement (see `firestore.rules.example`).
+  enforcement (see **Security rules** below; `firestore.rules`).
 - **Query limits.** Discover profiles: 50 (`listDiscoverableProfiles`).
   Matches: 50 (`listMatchesForUser` / `listenMatchesForUser`). Chat messages:
   most recent 100, still rendered oldest-first (`listenMessages` uses
@@ -117,6 +119,58 @@ after changing `.env`. Without config the app shows the Setup Required screen.
 Note: with the Firebase JS SDK on native, auth state persists in memory only
 (you sign in again after a full app restart). Web persists via IndexedDB.
 
+## Security rules
+
+LangMate's production-oriented Firestore security rules live in
+**`firestore.rules`** (the canonical, deployable file; `firestore.rules.example`
+is now just a pointer to it to avoid drift).
+
+- **Status.** Prompt006 verified the full app E2E against real Firebase, but
+  that ran under **permissive E2E rules** (effectively
+  `allow read, write: if request.auth != null;`). **Do not use permissive
+  rules in production.** Prompt007 introduces strict, per-collection rules and
+  validated them locally with the Firebase Emulator.
+- **What the rules enforce.** Owner-only profile writes + discoverable-or-owner
+  reads; swipe `fromUid`/doc-id integrity with both-sides read for the
+  mutual-connect check; member-only matches with updates restricted to
+  `lastMessage`/`lastSentAt`/`updatedAt` and immutable membership; member-only
+  messages with non-empty text and real `fromUid`; blocks readable by both
+  blocker and blocked (needed for two-direction filtering); create-only
+  reports with no client reads; default-deny everywhere else.
+
+### Validate rules locally
+
+```bash
+npm run test:rules
+```
+
+Runs the Firebase Emulator (no real project, no credentials — uses the
+`demo-langmate` emulator project) and executes `rules-tests/firestore.test.mjs`.
+Requires Java (the Firestore emulator is a JVM process) and the dev
+dependencies `firebase-tools` + `@firebase/rules-unit-testing`. Prompt007 run:
+**33 passed, 0 failed**.
+
+### Apply rules (manual, after validation)
+
+Prompt007 does **not** deploy. After reviewing and re-validating, deploy
+manually:
+
+```bash
+firebase deploy --only firestore:rules
+```
+
+Then re-run the real two-account E2E (Auth → Profile → Discover → Match →
+Chat → Report → Block) against the enforced rules, including the block
+filtering recheck (`artifacts/mobile_mvp/prompt007_block_filtering_recheck_plan.md`).
+
+### Reminders & remaining production needs
+
+- `.env` must remain git-ignored (it is — never commit or print it).
+- Still needed before a real launch: an **admin moderation workflow**
+  (reports are write-only from clients and need server-side review),
+  optionally **Cloud Functions / server-side enforcement of mutual-match
+  creation** for stronger guarantees, and **production monitoring/logging**.
+
 ## Firebase collections
 
 | Collection | Document ID | Contents |
@@ -128,8 +182,8 @@ Note: with the Firebase JS SDK on native, auth state persists in memory only
 | `blocks/{blockerUid_blockedUid}` | `${blockerUid}_${blockedUid}` | block record |
 | `reports/{autoId}` | auto-ID | report record |
 
-`firestore.rules.example` documents the intended security rules. It is an
-example only and is not deployed.
+The deployable rules for these collections are in `firestore.rules` (see
+**Security rules** above).
 
 ## Run
 
