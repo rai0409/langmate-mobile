@@ -69,9 +69,16 @@ service cloud.firestore {
         && request.resource.data.toUid != request.auth.uid
         && request.resource.data.action in ['connect', 'skip']
         && swipeId == request.resource.data.fromUid + '_' + request.resource.data.toUid;
-      // Either side may read (the target reads the incoming swipe during the
-      // mutual-connect check); no blanket read of all swipes.
-      allow read: if signedIn()
+      // The mutual-connect check reads the incoming swipe via get(); that doc
+      // may not exist yet, so allow a get on a non-existent swipe (returns
+      // "not found", leaks nothing). For an existing swipe, only the two
+      // parties may read it.
+      allow get: if signedIn()
+        && (resource == null
+            || resource.data.fromUid == request.auth.uid
+            || resource.data.toUid == request.auth.uid);
+      // The app never lists swipes; if it ever does, restrict to a party.
+      allow list: if signedIn()
         && (resource.data.fromUid == request.auth.uid
             || resource.data.toUid == request.auth.uid);
       allow delete: if false;
@@ -81,8 +88,15 @@ service cloud.firestore {
     // matches/{sortedUidA_sortedUidB}
     // ----------------------------------------------------------
     match /matches/{matchId} {
-      // Members only.
-      allow read: if isMember(resource.data.memberUids);
+      // The Connect flow get()s this doc to check whether a match already
+      // exists, which happens BEFORE the doc is created — so allow a get on a
+      // non-existent match (returns "not found", leaks nothing). For an
+      // existing match, only members may read it.
+      allow get: if signedIn()
+        && (resource == null || request.auth.uid in resource.data.memberUids);
+      // The Matches screen lists via where(memberUids array-contains uid);
+      // members only (the query constraint guarantees membership).
+      allow list: if isMember(resource.data.memberUids);
       // Create requires the creator to be one of exactly two members.
       allow create: if signedIn()
         && request.resource.data.memberUids is list

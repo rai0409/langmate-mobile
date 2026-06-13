@@ -120,6 +120,11 @@ await check("target can read incoming swipe (mutual-match check)", "allow",
   getDoc(doc(bobDb(), "swipes", `${ALICE}_${BOB}`)));
 await check("unrelated user cannot read a swipe", "deny",
   getDoc(doc(carolDb(), "swipes", `${ALICE}_${BOB}`)));
+// Reproduces the Prompt010 Connect bug: the mutual-match check reads the
+// INCOMING swipe before the other side has swiped, i.e. a get on a doc that
+// does not exist. Must be allowed (returns "not found", leaks nothing).
+await check("user can get a non-existent incoming swipe (Connect mutual-match check)", "allow",
+  getDoc(doc(aliceDb(), "swipes", `${CAROL}_${ALICE}`)));
 
 // =========================================================
 // matches
@@ -136,6 +141,11 @@ await check("member can read match", "allow",
   getDoc(doc(aliceDb(), "matches", M1)));
 await check("non-member cannot read match", "deny",
   getDoc(doc(carolDb(), "matches", M1)));
+// Reproduces the Prompt010 Connect bug: createMatchIfMutualConnect does a
+// get() on matches/{matchId} to check existence BEFORE the match is created,
+// i.e. a get on a doc that does not exist. Must be allowed.
+await check("user can get a not-yet-created match (Connect existence check)", "allow",
+  getDoc(doc(aliceDb(), "matches", `${ALICE}_${CAROL}`)));
 await check("member can update lastMessage/lastSentAt", "allow",
   updateDoc(doc(aliceDb(), "matches", M1), {
     lastMessage: "hi", lastSentAt: new Date(),
