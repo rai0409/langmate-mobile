@@ -1,6 +1,9 @@
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { getApps, initializeApp, type FirebaseApp } from "firebase/app";
-import { getAuth, type Auth } from "firebase/auth";
+import * as FirebaseAuth from "firebase/auth";
+import type { Auth, Persistence } from "firebase/auth";
 import { getFirestore, type Firestore } from "firebase/firestore";
+import { Platform } from "react-native";
 
 // EXPO_PUBLIC_* vars must be referenced with static dot notation so the
 // Expo bundler can inline them.
@@ -26,6 +29,32 @@ let firebaseApp: FirebaseApp | null = null;
 let auth: Auth | null = null;
 let db: Firestore | null = null;
 
+const firebaseAuthWithReactNativePersistence = FirebaseAuth as typeof FirebaseAuth & {
+  getReactNativePersistence?: (storage: typeof AsyncStorage) => Persistence;
+};
+
+function initializeFirebaseAuth(app: FirebaseApp): Auth {
+  if (Platform.OS === "web") {
+    return FirebaseAuth.getAuth(app);
+  }
+
+  const getReactNativePersistence =
+    firebaseAuthWithReactNativePersistence.getReactNativePersistence;
+  if (!getReactNativePersistence) {
+    throw new Error(
+      "Firebase Auth React Native persistence is unavailable in this runtime."
+    );
+  }
+
+  try {
+    return FirebaseAuth.initializeAuth(app, {
+      persistence: getReactNativePersistence(AsyncStorage),
+    });
+  } catch {
+    return FirebaseAuth.getAuth(app);
+  }
+}
+
 if (hasFirebaseConfig()) {
   firebaseApp =
     getApps()[0] ??
@@ -37,7 +66,7 @@ if (hasFirebaseConfig()) {
       messagingSenderId: firebaseConfig.messagingSenderId,
       appId: firebaseConfig.appId!,
     });
-  auth = getAuth(firebaseApp);
+  auth = initializeFirebaseAuth(firebaseApp);
   db = getFirestore(firebaseApp);
 }
 

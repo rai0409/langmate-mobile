@@ -116,8 +116,9 @@ EXPO_PUBLIC_FIREBASE_APP_ID=
 Expo inlines `EXPO_PUBLIC_*` variables at build time — restart the dev server
 after changing `.env`. Without config the app shows the Setup Required screen.
 
-Note: with the Firebase JS SDK on native, auth state persists in memory only
-(you sign in again after a full app restart). Web persists via IndexedDB.
+Note: on native Expo Go builds, Firebase Auth is initialized with
+`@react-native-async-storage/async-storage` so email/password sessions should
+survive a full Expo Go restart. Web keeps the Firebase SDK default persistence.
 
 ## Security rules
 
@@ -194,6 +195,32 @@ npm run android    # Android emulator/device
 npm run ios        # iOS simulator/device
 npm run test:types # TypeScript check (tsc --noEmit)
 ```
+
+## Mobile Expo Go testing
+
+Use a real iPhone or Android device on the same Wi-Fi network when possible:
+
+```bash
+npx expo start -c
+```
+
+If LAN discovery is blocked by the network, use a tunnel:
+
+```bash
+npx expo start --tunnel -c
+```
+
+Recommended private-beta smoke test:
+
+1. Open the QR code in Expo Go.
+2. Sign up or log in with two test accounts on two devices or one device plus
+   web.
+3. Complete profile setup for both accounts.
+4. Fully close Expo Go and reopen it; the signed-in account should remain
+   signed in on native.
+5. Use Profile -> Sign Out, then log back in.
+6. Verify Discover, Connect, mutual Match creation, Chat send/receive, Report,
+   Block, and post-block filtering in Discover and Matches.
 
 ## Manual verification checklist
 
