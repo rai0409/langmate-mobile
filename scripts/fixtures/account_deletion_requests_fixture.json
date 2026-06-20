@@ -1,0 +1,18 @@
+{
+  "requests": [
+    {
+      "uid": "alice",
+      "status": "requested",
+      "reason": "I want to stop using the service.",
+      "contactEmail": "alice@example.test",
+      "requestedAt": "2026-06-20T00:00:00.000Z",
+      "source": "local-fixture"
+    },
+    {
+      "uid": "bob",
+      "status": "requested",
+      "requestedAt": "2026-06-20T00:10:00.000Z",
+      "source": "local-fixture"
+    }
+  ]
+}

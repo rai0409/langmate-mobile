@@ -12,6 +12,7 @@
 //   reportReviews/{reportId}             (admin-only review metadata; client denied)
 //   moderationReviews/{reviewId}         (admin-only review events; client denied)
 //   userModeration/{uid}                 (admin-only user status; client denied)
+//   accountDeletionRequests/{uid}        (owner request record; no actual deletion)
 //
 // VALIDATION & DEPLOY:
 //   - These rules have been exercised with the Firebase Emulator Suite
@@ -30,6 +31,8 @@
 //     bypass these rules). No client may read reports.
 //   - Moderation review/status collections are explicitly client-denied until
 //     a server-backed custom-claims admin model is implemented and tested.
+//   - Account deletion requests are only request records. Actual deletion and
+//     retention handling require a future Admin SDK / Cloud Functions workflow.
 //   - Client-side block filtering in the app is UX, not security; these
 //     rules are the actual boundary.
 // ============================================================
@@ -178,6 +181,40 @@ service cloud.firestore {
 
     match /userModeration/{uid} {
       allow read, write: if false;
+    }
+
+    // ----------------------------------------------------------
+    // accountDeletionRequests/{uid} — non-destructive request intake.
+    // ----------------------------------------------------------
+    match /accountDeletionRequests/{uid} {
+      function validDeletionRequest() {
+        return request.resource.data.keys().hasOnly([
+            'uid',
+            'status',
+            'reason',
+            'contactEmail',
+            'requestedAt',
+            'updatedAt',
+            'source'
+          ])
+          && request.resource.data.uid == uid
+          && request.resource.data.status == 'requested'
+          && (!('reason' in request.resource.data)
+              || request.resource.data.reason is string)
+          && (!('contactEmail' in request.resource.data)
+              || request.resource.data.contactEmail is string)
+          && (!('source' in request.resource.data)
+              || request.resource.data.source is string);
+      }
+
+      // Users may create/read/update only their own request record.
+      // Listing all requests and deleting data remain server/admin work.
+      allow get: if signedIn() && request.auth.uid == uid;
+      allow list: if false;
+      allow create, update: if signedIn()
+        && request.auth.uid == uid
+        && validDeletionRequest();
+      allow delete: if false;
     }
 
     // ----------------------------------------------------------

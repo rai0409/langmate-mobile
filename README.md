@@ -49,6 +49,8 @@ exchange apps. No third-party branding, UI, text, or assets are copied.
   emulator-validated in `firestore.rules`, but are not yet deployed — see
   **Security rules** below)
 - Production moderation tooling
+- Production account deletion processor
+- Final legally reviewed privacy policy / terms / retention policy
 - Video/audio calls
 - Payments
 
@@ -205,6 +207,51 @@ Do not expose admin review or moderation writes in the normal client app.
 Before public launch, reports need a real admin review/triage/action workflow,
 audit trail, and operational policy.
 
+## Privacy and account deletion baseline
+
+Prompt017 adds a privacy/account-deletion baseline for the Web + Firebase
+backend path. These documents are drafts only and require legal review before
+public use:
+
+- `docs/privacy_policy_draft.md`
+- `docs/terms_draft.md`
+- `docs/account_deletion_policy_draft.md`
+- `docs/data_retention_policy_draft.md`
+
+What is implemented:
+
+- A non-destructive Firestore request record:
+  `accountDeletionRequests/{uid}`.
+- Firestore rules allowing a signed-in user to create/update/get only their
+  own deletion request.
+- Firestore rules denying normal users from listing deletion requests, reading
+  another user's request, or deleting request/data records.
+- Emulator rules tests for the owner-only account deletion request boundary.
+- A local-only fixture validator:
+
+```bash
+npm run account-deletion:fixture
+```
+
+The fixture reads `scripts/fixtures/account_deletion_requests_fixture.json`,
+validates request shapes, and prints normalized output. It does **not** connect
+to Firebase, does **not** require Admin SDK credentials, and does **not** delete
+or modify real data.
+
+What is not implemented:
+
+- No real Firebase data deletion.
+- No Firebase Auth account deletion.
+- No Admin SDK script, Cloud Function, or production deletion processor.
+- No final legally reviewed retention schedule.
+- No GDPR/APPI/App Store/Play Store compliance claim.
+
+Production account deletion requires a trusted server-side workflow using
+Firebase Admin SDK or Cloud Functions. That workflow must verify identity,
+apply the legally reviewed retention policy, delete or anonymize eligible data,
+preserve required safety/audit records, and record completion evidence outside
+the normal client app.
+
 ## Firebase collections
 
 | Collection | Document ID | Contents |
@@ -215,6 +262,7 @@ audit trail, and operational policy.
 | `matches/{matchId}/messages/{autoId}` | auto-ID | fromUid, text, createdAt |
 | `blocks/{blockerUid_blockedUid}` | `${blockerUid}_${blockedUid}` | block record |
 | `reports/{autoId}` | auto-ID | report record |
+| `accountDeletionRequests/{uid}` | auth uid | non-destructive account deletion request |
 
 The deployable rules for these collections are in `firestore.rules` (see
 **Security rules** above).

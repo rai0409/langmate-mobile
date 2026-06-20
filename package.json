@@ -30,7 +30,8 @@
     "web": "expo start --web",
     "test:types": "tsc --noEmit",
     "test:rules": "firebase emulators:exec --only firestore --project demo-langmate \"node rules-tests/firestore.test.mjs\"",
-    "moderation:fixture": "node scripts/moderation_review_fixture.mjs"
+    "moderation:fixture": "node scripts/moderation_review_fixture.mjs",
+    "account-deletion:fixture": "node scripts/account_deletion_request_fixture.mjs"
   },
   "private": true
 }

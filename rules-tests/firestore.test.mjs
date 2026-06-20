@@ -330,6 +330,65 @@ await check("normal user cannot write user moderation status", "deny",
   }));
 
 // =========================================================
+// account deletion requests
+// =========================================================
+console.log("accountDeletionRequests:");
+await testEnv.clearFirestore();
+await seed(async (db) => {
+  await setDoc(doc(db, "accountDeletionRequests", BOB), {
+    uid: BOB,
+    status: "requested",
+    reason: "seeded request",
+    contactEmail: "bob@example.test",
+    requestedAt: new Date(),
+    updatedAt: new Date(),
+    source: "rules-test-seed",
+  });
+});
+await check("user can create own account deletion request", "allow",
+  setDoc(doc(aliceDb(), "accountDeletionRequests", ALICE), {
+    uid: ALICE,
+    status: "requested",
+    reason: "please delete my account",
+    contactEmail: "alice@example.test",
+    requestedAt: new Date(),
+    updatedAt: new Date(),
+    source: "web",
+  }));
+await check("user can read own account deletion request", "allow",
+  getDoc(doc(bobDb(), "accountDeletionRequests", BOB)));
+await check("user cannot read another user's account deletion request", "deny",
+  getDoc(doc(aliceDb(), "accountDeletionRequests", BOB)));
+await check("user cannot list all account deletion requests", "deny",
+  getDocs(collection(aliceDb(), "accountDeletionRequests")));
+await check("user cannot create account deletion request for another uid", "deny",
+  setDoc(doc(aliceDb(), "accountDeletionRequests", BOB), {
+    uid: BOB,
+    status: "requested",
+    reason: "spoof",
+    requestedAt: new Date(),
+    updatedAt: new Date(),
+    source: "web",
+  }));
+await check("account deletion request uid must match doc id", "deny",
+  setDoc(doc(aliceDb(), "accountDeletionRequests", ALICE), {
+    uid: BOB,
+    status: "requested",
+    reason: "mismatch",
+    requestedAt: new Date(),
+    updatedAt: new Date(),
+    source: "web",
+  }));
+await check("account deletion request status is client-fixed to requested", "deny",
+  setDoc(doc(aliceDb(), "accountDeletionRequests", ALICE), {
+    uid: ALICE,
+    status: "completed",
+    requestedAt: new Date(),
+    updatedAt: new Date(),
+    source: "web",
+  }));
+
+// =========================================================
 await testEnv.cleanup();
 console.log(`\nRules tests: ${passed} passed, ${failed} failed`);
 if (failed > 0) {
