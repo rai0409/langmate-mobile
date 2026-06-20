@@ -29,7 +29,8 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "test:types": "tsc --noEmit",
-    "test:rules": "firebase emulators:exec --only firestore --project demo-langmate \"node rules-tests/firestore.test.mjs\""
+    "test:rules": "firebase emulators:exec --only firestore --project demo-langmate \"node rules-tests/firestore.test.mjs\"",
+    "moderation:fixture": "node scripts/moderation_review_fixture.mjs"
   },
   "private": true
 }

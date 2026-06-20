@@ -9,6 +9,9 @@
 //   matches/{matchId}/messages/{autoId}  (addDoc; fromUid, text, createdAt)
 //   blocks/{blockerUid}_{blockedUid}     (setDoc; blockerUid, blockedUid, createdAt)
 //   reports/{autoId}                     (addDoc; reporterUid, reportedUid, reason, createdAt)
+//   reportReviews/{reportId}             (admin-only review metadata; client denied)
+//   moderationReviews/{reviewId}         (admin-only review events; client denied)
+//   userModeration/{uid}                 (admin-only user status; client denied)
 //
 // VALIDATION & DEPLOY:
 //   - These rules have been exercised with the Firebase Emulator Suite
@@ -25,6 +28,8 @@
 //   - Reports are create-only from clients; reading/acting on them must be
 //     done by admin/moderation tooling (Admin SDK / Cloud Functions, which
 //     bypass these rules). No client may read reports.
+//   - Moderation review/status collections are explicitly client-denied until
+//     a server-backed custom-claims admin model is implemented and tested.
 //   - Client-side block filtering in the app is UX, not security; these
 //     rules are the actual boundary.
 // ============================================================
@@ -157,6 +162,22 @@ service cloud.firestore {
         && request.resource.data.reason.size() > 0;
       // Reads/mutations only via admin tooling (Admin SDK bypasses rules).
       allow read, update, delete: if false;
+    }
+
+    // ----------------------------------------------------------
+    // Admin-only moderation data. These collections are reserved
+    // for future Admin SDK / Cloud Functions workflows.
+    // ----------------------------------------------------------
+    match /reportReviews/{reportId} {
+      allow read, write: if false;
+    }
+
+    match /moderationReviews/{reviewId} {
+      allow read, write: if false;
+    }
+
+    match /userModeration/{uid} {
+      allow read, write: if false;
     }
 
     // ----------------------------------------------------------

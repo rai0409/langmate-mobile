@@ -1,0 +1,24 @@
+{
+  "reports": [
+    {
+      "id": "report_fixture_001",
+      "reporterUid": "alice",
+      "reportedUid": "bob",
+      "reason": "Harassing message in chat",
+      "createdAt": "2026-06-20T00:00:00.000Z"
+    },
+    {
+      "id": "report_fixture_002",
+      "reporterUid": "carol",
+      "reportedUid": "dave",
+      "reason": "Spam profile",
+      "createdAt": "2026-06-20T00:05:00.000Z"
+    }
+  ],
+  "reviewDefaults": {
+    "status": "open",
+    "severity": "medium",
+    "action": "none",
+    "reviewedBy": "local-fixture-reviewer"
+  }
+}

@@ -137,7 +137,8 @@ is now just a pointer to it to avoid drift).
   `lastMessage`/`lastSentAt`/`updatedAt` and immutable membership; member-only
   messages with non-empty text and real `fromUid`; blocks readable by both
   blocker and blocked (needed for two-direction filtering); create-only
-  reports with no client reads; default-deny everywhere else.
+  reports with no client reads; admin-only moderation collections denied to
+  clients; default-deny everywhere else.
 
 ### Validate rules locally
 
@@ -171,6 +172,38 @@ filtering recheck (`artifacts/mobile_mvp/prompt007_block_filtering_recheck_plan.
   (reports are write-only from clients and need server-side review),
   optionally **Cloud Functions / server-side enforcement of mutual-match
   creation** for stronger guarantees, and **production monitoring/logging**.
+
+## Moderation workflow status
+
+Current client safety behavior:
+
+- Users can create `reports/{autoId}` from View Profile.
+- Users can create `blocks/{blockerUid_blockedUid}`.
+- Normal clients cannot read, list, update, or delete reports.
+- Normal clients cannot access reserved admin collections:
+  `reportReviews`, `moderationReviews`, or `userModeration`.
+
+Prompt016 adds a **local-only moderation fixture workflow**:
+
+```bash
+npm run moderation:fixture
+```
+
+The fixture script reads `scripts/fixtures/moderation_reports_fixture.json`,
+validates sample report/review/user-moderation shapes, and prints normalized
+review output. It does **not** connect to Firebase, does **not** require Admin
+SDK credentials, and does **not** modify real data.
+
+Production moderation still requires a server-side admin path, such as:
+
+- Firebase Admin SDK script with service account credentials kept outside the
+  Expo app and repository.
+- Cloud Functions guarded by Firebase Auth custom claims.
+- An internal admin dashboard backed by server-side Admin SDK access.
+
+Do not expose admin review or moderation writes in the normal client app.
+Before public launch, reports need a real admin review/triage/action workflow,
+audit trail, and operational policy.
 
 ## Firebase collections
 

@@ -241,6 +241,93 @@ await check("report reason must be non-empty", "deny",
   }));
 await check("normal user cannot read reports", "deny",
   getDoc(doc(aliceDb(), "reports", "seed1")));
+await check("normal user cannot list reports", "deny",
+  getDocs(collection(aliceDb(), "reports")));
+
+// =========================================================
+// admin-only moderation collections
+// =========================================================
+console.log("moderation:");
+await testEnv.clearFirestore();
+await seed(async (db) => {
+  await setDoc(doc(db, "reportReviews", "seed1"), {
+    reportId: "seed1",
+    reporterUid: ALICE,
+    reportedUid: BOB,
+    status: "open",
+    severity: "medium",
+    action: "none",
+    adminNotes: "seeded",
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    reviewedBy: "admin",
+  });
+  await setDoc(doc(db, "moderationReviews", "review1"), {
+    reportId: "seed1",
+    reporterUid: ALICE,
+    reportedUid: BOB,
+    status: "open",
+    severity: "medium",
+    action: "none",
+    adminNotes: "seeded",
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    reviewedBy: "admin",
+  });
+  await setDoc(doc(db, "userModeration", BOB), {
+    uid: BOB,
+    status: "warned",
+    reason: "seeded",
+    sourceReportId: "seed1",
+    updatedAt: new Date(),
+    updatedBy: "admin",
+  });
+});
+await check("normal user cannot read report review", "deny",
+  getDoc(doc(aliceDb(), "reportReviews", "seed1")));
+await check("normal user cannot list report reviews", "deny",
+  getDocs(collection(aliceDb(), "reportReviews")));
+await check("normal user cannot write report review", "deny",
+  setDoc(doc(aliceDb(), "reportReviews", "seed2"), {
+    reportId: "seed2",
+    reporterUid: ALICE,
+    reportedUid: BOB,
+    status: "open",
+    severity: "low",
+    action: "none",
+    adminNotes: "client attempt",
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    reviewedBy: ALICE,
+  }));
+await check("normal user cannot read moderation review", "deny",
+  getDoc(doc(aliceDb(), "moderationReviews", "review1")));
+await check("normal user cannot write moderation review", "deny",
+  setDoc(doc(aliceDb(), "moderationReviews", "review2"), {
+    reportId: "seed1",
+    reporterUid: ALICE,
+    reportedUid: BOB,
+    status: "reviewing",
+    severity: "medium",
+    action: "warning",
+    adminNotes: "client attempt",
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    reviewedBy: ALICE,
+  }));
+await check("reported user cannot read own moderation status", "deny",
+  getDoc(doc(bobDb(), "userModeration", BOB)));
+await check("unrelated user cannot read moderation status", "deny",
+  getDoc(doc(carolDb(), "userModeration", BOB)));
+await check("normal user cannot write user moderation status", "deny",
+  setDoc(doc(aliceDb(), "userModeration", ALICE), {
+    uid: ALICE,
+    status: "active",
+    reason: "client attempt",
+    sourceReportId: "seed1",
+    updatedAt: new Date(),
+    updatedBy: ALICE,
+  }));
 
 // =========================================================
 await testEnv.cleanup();
