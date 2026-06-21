@@ -1,12 +1,9 @@
-import { getErrorMessage } from "./errorMessage";
+import { logAppError } from "./errorLogging";
 
 /**
- * Development-only error logging. Logs only the context label and the safe
- * message from getErrorMessage — never whole unknown objects and never
- * env/config values. No-op in production builds.
+ * Development-only error logging. Emits a sanitized diagnostic object with a
+ * stable shape for future observability integrations. No-op in production.
  */
 export function logDevError(context: string, error: unknown): void {
-  if (__DEV__) {
-    console.warn(`[${context}] ${getErrorMessage(error)}`);
-  }
+  logAppError(context, error);
 }
