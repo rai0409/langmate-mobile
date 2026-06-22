@@ -276,6 +276,19 @@ and refreshing again to confirm the Auth screen is shown.
 
 More detail: `docs/auth_logout_ux_hardening.md`.
 
+## Web beta QA checklist
+
+Prompt020 prepares the PC Web + Firebase backend beta QA pass. Use:
+
+```bash
+cd /home/rai/dev/langexchange/langexchange_mobile
+npx expo start --web -c
+```
+
+Then follow `docs/web_beta_qa_checklist.md`. Manual browser QA remains pending
+until the tester runs the checklist and provides evidence. Do not paste test
+passwords, secrets, `.env` values, or full Firebase config values into QA notes.
+
 ## Firebase collections
 
 | Collection | Document ID | Contents |
