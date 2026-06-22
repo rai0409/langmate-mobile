@@ -38,6 +38,8 @@ exchange apps. No third-party branding, UI, text, or assets are copied.
   Firestore)
 - Setup screen when Firebase env vars are missing (the app never crashes on
   missing config)
+- Profile shows the current signed-in email/UID and a clear Logout button for
+  safer Web QA account switching
 
 ## Not implemented yet
 
@@ -251,6 +253,28 @@ Firebase Admin SDK or Cloud Functions. That workflow must verify identity,
 apply the legally reviewed retention policy, delete or anonymize eligible data,
 preserve required safety/audit records, and record completion evidence outside
 the normal client app.
+
+## Auth logout and Web test-user switching
+
+Prompt019 adds a Web/private-beta auth UX hardening pass. Profile now shows a
+clear "Signed in as" section with the Firebase Auth email when available, the
+current auth UID, and a Logout button. Logout calls the existing AuthContext
+Firebase `signOut` flow; after Firebase reports no current user, the app returns
+to the Auth screen. No user data is deleted.
+
+For Web QA, always logout before switching from one test user to another:
+
+1. Open Profile and confirm the signed-in email/UID.
+2. Tap Logout and wait for the Auth screen.
+3. Sign in as the next test user.
+4. Reopen Profile and confirm the email/UID changed.
+
+Do not hardcode or paste test-user passwords into app code, artifacts, or QA
+notes. Web session persistence can be checked by signing in, refreshing the
+browser tab, confirming the same Profile identity remains visible, logging out,
+and refreshing again to confirm the Auth screen is shown.
+
+More detail: `docs/auth_logout_ux_hardening.md`.
 
 ## Firebase collections
 

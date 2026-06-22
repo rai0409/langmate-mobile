@@ -25,6 +25,7 @@ import type {
   Profile,
   UserLevel,
 } from "../types/domain";
+import { logAppError } from "../utils/errorLogging";
 import { errorMessage, notify } from "../utils/notify";
 
 interface OnboardingScreenProps {
@@ -117,6 +118,9 @@ export function OnboardingScreen({
       });
       onSaved?.();
     } catch (e) {
+      logAppError("profile_save_failed", e, {
+        mode: existingProfile ? "edit" : "create",
+      });
       notify("Could not save profile", errorMessage(e));
     } finally {
       setBusy(false);

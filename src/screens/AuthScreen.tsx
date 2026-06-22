@@ -11,6 +11,7 @@ import { AppButton } from "../components/AppButton";
 import { AppTextInput } from "../components/AppTextInput";
 import { useAuth } from "../context/AuthContext";
 import { colors, spacing, typography } from "../theme/theme";
+import { logAppError } from "../utils/errorLogging";
 import { errorMessage } from "../utils/notify";
 
 export function AuthScreen() {
@@ -45,6 +46,7 @@ export function AuthScreen() {
         await signUp(email, password);
       }
     } catch (e) {
+      logAppError("auth_screen_submit_failed", e, { action });
       setError(errorMessage(e));
     } finally {
       setBusy(false);

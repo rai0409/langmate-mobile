@@ -1,4 +1,7 @@
 export type AppErrorCategory =
+  | "invalid_credentials"
+  | "email_in_use"
+  | "weak_password"
   | "permission_denied"
   | "unauthenticated"
   | "not_found"
@@ -71,6 +74,21 @@ export function classifyError(error: unknown): AppErrorCategory {
   const text = normalizedErrorText(error);
 
   if (
+    code.includes("auth/invalid-credential") ||
+    code.includes("auth/wrong-password") ||
+    code.includes("auth/user-not-found") ||
+    code.includes("auth/invalid-email") ||
+    text.includes("invalid credential")
+  ) {
+    return "invalid_credentials";
+  }
+  if (code.includes("auth/email-already-in-use")) {
+    return "email_in_use";
+  }
+  if (code.includes("auth/weak-password")) {
+    return "weak_password";
+  }
+  if (
     code.includes("permission-denied") ||
     code.includes("permission_denied") ||
     text.includes("permission_denied") ||
@@ -122,6 +140,12 @@ export function classifyError(error: unknown): AppErrorCategory {
 
 export function getSafeErrorMessage(error: unknown): string {
   switch (classifyError(error)) {
+    case "invalid_credentials":
+      return "Email or password is incorrect.";
+    case "email_in_use":
+      return "An account already exists for that email.";
+    case "weak_password":
+      return "Please use a stronger password.";
     case "permission_denied":
       return "You do not have permission to do that.";
     case "unauthenticated":

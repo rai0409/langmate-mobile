@@ -1,6 +1,6 @@
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import React from "react";
+import React, { useState } from "react";
 import { ScrollView, StyleSheet, Text, View } from "react-native";
 import { AppButton } from "../components/AppButton";
 import { Chip } from "../components/Chip";
@@ -14,6 +14,7 @@ import { useAuth } from "../context/AuthContext";
 import { useCurrentProfile } from "../context/ProfileContext";
 import { colors, radius, spacing, typography } from "../theme/theme";
 import type { RootStackParamList } from "../types/navigation";
+import { logAppError } from "../utils/errorLogging";
 import { errorMessage, notify } from "../utils/notify";
 
 export function ProfileScreen() {
@@ -21,14 +22,23 @@ export function ProfileScreen() {
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { signOut, currentUser } = useAuth();
   const { profile } = useCurrentProfile();
+  const [signingOut, setSigningOut] = useState(false);
 
   const handleSignOut = async () => {
+    if (signingOut) return;
+    setSigningOut(true);
     try {
       await signOut();
     } catch (e) {
+      logAppError("profile_sign_out_failed", e);
       notify("Could not sign out", errorMessage(e));
+      setSigningOut(false);
     }
   };
+
+  const signedInEmail = currentUser?.email?.trim();
+  const signedInLabel = signedInEmail || "Email unavailable";
+  const signedInUid = currentUser?.uid ?? "Unknown user";
 
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
@@ -42,7 +52,13 @@ export function ProfileScreen() {
         {profile?.country ? (
           <Text style={styles.caption}>{profile.country}</Text>
         ) : null}
-        <Text style={styles.caption}>{currentUser?.email}</Text>
+      </View>
+
+      <View style={styles.sessionCard}>
+        <Text style={styles.sessionTitle}>Signed in as</Text>
+        <Text style={styles.sessionEmail}>{signedInLabel}</Text>
+        <Text style={styles.uidLabel}>UID</Text>
+        <Text style={styles.uidValue}>{signedInUid}</Text>
       </View>
 
       {profile ? (
@@ -87,9 +103,15 @@ export function ProfileScreen() {
           title="Edit Profile"
           onPress={() => navigation.navigate("EditProfile")}
           variant="secondary"
+          disabled={signingOut}
         />
         <View style={styles.gap} />
-        <AppButton title="Sign Out" onPress={handleSignOut} variant="danger" />
+        <AppButton
+          title={signingOut ? "Signing out..." : "Logout"}
+          onPress={handleSignOut}
+          variant="danger"
+          disabled={signingOut}
+        />
       </View>
     </ScrollView>
   );
@@ -143,6 +165,33 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
     borderRadius: radius.lg,
     padding: spacing.lg,
+  },
+  sessionCard: {
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radius.md,
+    padding: spacing.lg,
+    marginBottom: spacing.lg,
+  },
+  sessionTitle: {
+    ...typography.caption,
+    fontWeight: "700",
+    textTransform: "uppercase",
+    marginBottom: spacing.xs,
+  },
+  sessionEmail: {
+    ...typography.body,
+    fontWeight: "700",
+    marginBottom: spacing.md,
+  },
+  uidLabel: {
+    ...typography.caption,
+    fontWeight: "700",
+    marginBottom: spacing.xs,
+  },
+  uidValue: {
+    ...typography.caption,
   },
   row: {
     flexDirection: "row",
