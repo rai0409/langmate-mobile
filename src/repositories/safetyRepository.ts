@@ -9,8 +9,8 @@ import {
   setDoc,
   where,
 } from "firebase/firestore";
-import { getConfiguredDb } from "./firestoreHelpers";
-import type { Block, Report } from "../types/domain";
+import { getConfiguredDb, removeUndefinedFields } from "./firestoreHelpers";
+import type { Block, Report, ReportReason } from "../types/domain";
 
 const BLOCKS = "blocks";
 
@@ -50,6 +50,13 @@ export async function listBlocksForUser(uid: string): Promise<Block[]> {
     }
   }
   return [...merged.values()];
+}
+
+export async function isBlockedBetween(
+  uidA: string,
+  uidB: string
+): Promise<boolean> {
+  return isUidBlocked(toBlockSets(uidA, await listBlocksForUser(uidA)), uidB);
 }
 
 /**
@@ -127,14 +134,16 @@ export function isUidBlocked(sets: BlockSets, otherUid: string): boolean {
 export async function reportUser(
   reporterUid: string,
   reportedUid: string,
-  reason: string
+  reason: ReportReason,
+  details?: string
 ): Promise<void> {
   const db = getConfiguredDb();
   const report: Report = {
     reporterUid,
     reportedUid,
     reason,
+    details: details?.trim() || undefined,
     createdAt: serverTimestamp(),
   };
-  await addDoc(collection(db, "reports"), report);
+  await addDoc(collection(db, "reports"), removeUndefinedFields({ ...report }));
 }

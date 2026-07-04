@@ -56,6 +56,13 @@ export async function createMatchIfMutualConnect(
 
 export const MATCHES_QUERY_LIMIT = 50;
 
+export async function getMatch(matchId: string): Promise<Match | null> {
+  const db = getConfiguredDb();
+  const snapshot = await getDoc(doc(db, MATCHES, matchId));
+  if (!snapshot.exists()) return null;
+  return { ...(snapshot.data() as Match), matchId };
+}
+
 export async function listMatchesForUser(
   uid: string,
   limitCount: number = MATCHES_QUERY_LIMIT

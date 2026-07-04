@@ -1,9 +1,11 @@
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import * as ImagePicker from "expo-image-picker";
 import React, { useState } from "react";
 import { ScrollView, StyleSheet, Text, View } from "react-native";
 import { AppButton } from "../components/AppButton";
 import { Chip } from "../components/Chip";
+import { ProfileAvatar } from "../components/ProfileAvatar";
 import {
   availabilityLabel,
   languageLabel,
@@ -12,6 +14,7 @@ import {
 } from "../constants/options";
 import { useAuth } from "../context/AuthContext";
 import { useCurrentProfile } from "../context/ProfileContext";
+import { uploadProfilePhoto } from "../repositories/storageRepository";
 import { colors, radius, spacing, typography } from "../theme/theme";
 import type { RootStackParamList } from "../types/navigation";
 import { logAppError } from "../utils/errorLogging";
@@ -23,6 +26,7 @@ export function ProfileScreen() {
   const { signOut, currentUser } = useAuth();
   const { profile } = useCurrentProfile();
   const [signingOut, setSigningOut] = useState(false);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
 
   const handleSignOut = async () => {
     if (signingOut) return;
@@ -36,6 +40,48 @@ export function ProfileScreen() {
     }
   };
 
+  const handlePickPhoto = async () => {
+    if (!currentUser) {
+      notify("Not signed in", "Please sign in again.");
+      return;
+    }
+    if (uploadingPhoto) return;
+
+    try {
+      const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!permission.granted) {
+        notify(
+          "Photo access denied",
+          "Allow photo library access to choose a profile photo."
+        );
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ["images"],
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.75,
+      });
+
+      if (result.canceled) return;
+      const asset = result.assets[0];
+      if (!asset?.uri) {
+        notify("Could not choose photo", "Please choose a different image.");
+        return;
+      }
+
+      setUploadingPhoto(true);
+      await uploadProfilePhoto(currentUser.uid, asset.uri);
+      notify("Profile photo updated", "Your new photo has been saved.");
+    } catch (e) {
+      logAppError("profile_photo_upload_failed", e);
+      notify("Could not update photo", errorMessage(e));
+    } finally {
+      setUploadingPhoto(false);
+    }
+  };
+
   const signedInEmail = currentUser?.email?.trim();
   const signedInLabel = signedInEmail || "Email unavailable";
   const signedInUid = currentUser?.uid ?? "Unknown user";
@@ -43,15 +89,23 @@ export function ProfileScreen() {
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
       <View style={styles.header}>
-        <View style={styles.avatar}>
-          <Text style={styles.avatarText}>
-            {(profile?.displayName ?? "?").charAt(0).toUpperCase()}
-          </Text>
-        </View>
+        <ProfileAvatar
+          profile={profile}
+          name={profile?.displayName ?? "Your profile"}
+          size={72}
+        />
         <Text style={styles.name}>{profile?.displayName ?? "Your profile"}</Text>
         {profile?.country ? (
           <Text style={styles.caption}>{profile.country}</Text>
         ) : null}
+        <View style={styles.photoAction}>
+          <AppButton
+            title={uploadingPhoto ? "Uploading..." : "Change Photo"}
+            onPress={handlePickPhoto}
+            variant="secondary"
+            disabled={signingOut || uploadingPhoto}
+          />
+        </View>
       </View>
 
       <View style={styles.sessionCard}>
@@ -138,26 +192,17 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: spacing.xl,
   },
-  avatar: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
-    backgroundColor: colors.primarySoft,
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: spacing.md,
-  },
-  avatarText: {
-    fontSize: 30,
-    fontWeight: "700",
-    color: colors.primary,
-  },
   name: {
     ...typography.title,
+    marginTop: spacing.md,
   },
   caption: {
     ...typography.caption,
     marginTop: 2,
+  },
+  photoAction: {
+    marginTop: spacing.md,
+    minWidth: 160,
   },
   card: {
     backgroundColor: colors.surface,

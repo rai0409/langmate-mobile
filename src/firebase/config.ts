@@ -3,6 +3,7 @@ import { getApps, initializeApp, type FirebaseApp } from "firebase/app";
 import * as FirebaseAuth from "firebase/auth";
 import type { Auth, Persistence } from "firebase/auth";
 import { getFirestore, type Firestore } from "firebase/firestore";
+import { getStorage, type FirebaseStorage } from "firebase/storage";
 import { Platform } from "react-native";
 
 // EXPO_PUBLIC_* vars must be referenced with static dot notation so the
@@ -28,6 +29,7 @@ export function hasFirebaseConfig(): boolean {
 let firebaseApp: FirebaseApp | null = null;
 let auth: Auth | null = null;
 let db: Firestore | null = null;
+let storage: FirebaseStorage | null = null;
 
 const firebaseAuthWithReactNativePersistence = FirebaseAuth as typeof FirebaseAuth & {
   getReactNativePersistence?: (storage: typeof AsyncStorage) => Persistence;
@@ -68,9 +70,10 @@ if (hasFirebaseConfig()) {
     });
   auth = initializeFirebaseAuth(firebaseApp);
   db = getFirestore(firebaseApp);
+  storage = getStorage(firebaseApp);
 }
 
-export { firebaseApp, auth, db };
+export { firebaseApp, auth, db, storage };
 
 export function requireAuth(): Auth {
   if (!auth) {
@@ -88,4 +91,13 @@ export function requireDb(): Firestore {
     );
   }
   return db;
+}
+
+export function requireStorage(): FirebaseStorage {
+  if (!storage) {
+    throw new Error(
+      "Firebase is not configured. Copy .env.example to .env and fill in your Firebase settings."
+    );
+  }
+  return storage;
 }

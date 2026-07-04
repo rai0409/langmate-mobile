@@ -1,5 +1,6 @@
 import type { Firestore } from "firebase/firestore";
-import { db, hasFirebaseConfig } from "../firebase/config";
+import type { FirebaseStorage } from "firebase/storage";
+import { db, hasFirebaseConfig, storage } from "../firebase/config";
 
 export const FIREBASE_NOT_CONFIGURED_MESSAGE =
   "Firebase is not configured. Add EXPO_PUBLIC_FIREBASE_* values to .env and restart Expo.";
@@ -14,6 +15,13 @@ export function getConfiguredDb(): Firestore {
     throw new Error(FIREBASE_NOT_CONFIGURED_MESSAGE);
   }
   return db;
+}
+
+export function getConfiguredStorage(): FirebaseStorage {
+  if (!hasFirebaseConfig() || !storage) {
+    throw new Error(FIREBASE_NOT_CONFIGURED_MESSAGE);
+  }
+  return storage;
 }
 
 /**

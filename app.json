@@ -20,6 +20,15 @@
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "plugins": [
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "LangMate uses your photo library so you can choose a profile photo.",
+          "microphonePermission": false
+        }
+      ]
+    ]
   }
 }

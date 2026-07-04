@@ -10,7 +10,9 @@ import {
 } from "react-native";
 import { EmptyState } from "../components/EmptyState";
 import { LoadingScreen } from "../components/LoadingScreen";
+import { ProfileAvatar } from "../components/ProfileAvatar";
 import { useAuth } from "../context/AuthContext";
+import { useCurrentProfile } from "../context/ProfileContext";
 import { hasFirebaseConfig } from "../firebase/config";
 import { listenMatchesForUser } from "../repositories/matchRepository";
 import { getProfile } from "../repositories/profileRepository";
@@ -20,10 +22,12 @@ import {
   toBlockSets,
   type BlockSets,
 } from "../repositories/safetyRepository";
+import { calculateMatchScore } from "../services/matchingService";
 import { colors, radius, spacing, typography } from "../theme/theme";
-import type { Match } from "../types/domain";
+import type { Match, Profile } from "../types/domain";
 import type { RootStackParamList } from "../types/navigation";
 import { logDevError } from "../utils/logging";
+import { notify } from "../utils/notify";
 
 const EMPTY_BLOCK_SETS: BlockSets = {
   blockedByMe: new Set<string>(),
@@ -34,12 +38,14 @@ interface MatchRow {
   match: Match;
   partnerUid: string;
   partnerName: string;
+  partnerProfile: Profile | null;
 }
 
 export function MatchesScreen() {
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { currentUser } = useAuth();
+  const { profile: currentProfile } = useCurrentProfile();
   const [rows, setRows] = useState<MatchRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [blockSets, setBlockSets] = useState<BlockSets>(EMPTY_BLOCK_SETS);
@@ -51,7 +57,7 @@ export function MatchesScreen() {
       setLoading(false);
       return;
     }
-    const nameCache = new Map<string, string>();
+    const profileCache = new Map<string, Profile | null>();
     const unsubscribe = listenMatchesForUser(
       currentUser.uid,
       (matches) => {
@@ -60,18 +66,22 @@ export function MatchesScreen() {
             matches.map(async (match) => {
               const partnerUid =
                 match.memberUids.find((uid) => uid !== currentUser.uid) ?? "";
-              let partnerName = nameCache.get(partnerUid) ?? "";
-              if (!partnerName && partnerUid) {
+              let partnerProfile = profileCache.get(partnerUid);
+              if (partnerProfile === undefined && partnerUid) {
                 try {
-                  const partner = await getProfile(partnerUid);
-                  partnerName = partner?.displayName ?? "Partner";
+                  partnerProfile = await getProfile(partnerUid);
                 } catch (e) {
                   logDevError("MatchesScreen.partnerProfile", e);
-                  partnerName = "Partner";
+                  partnerProfile = null;
                 }
-                nameCache.set(partnerUid, partnerName);
+                profileCache.set(partnerUid, partnerProfile);
               }
-              return { match, partnerUid, partnerName };
+              return {
+                match,
+                partnerUid,
+                partnerName: partnerProfile?.displayName ?? "Partner",
+                partnerProfile: partnerProfile ?? null,
+              };
             })
           );
           setRows(next);
@@ -86,6 +96,28 @@ export function MatchesScreen() {
     );
     return unsubscribe;
   }, [currentUser]);
+
+  const openPartnerProfile = (row: MatchRow) => {
+    if (!currentUser || !currentProfile) {
+      notify("Profile unavailable", "Please reopen Matches and try again.");
+      return;
+    }
+    if (!row.partnerUid || row.partnerUid === currentUser.uid) {
+      notify("Profile unavailable", "This match does not have another profile to show.");
+      return;
+    }
+    if (!row.partnerProfile) {
+      notify(
+        "Profile unavailable",
+        "We could not load this partner's profile. You can still open the chat."
+      );
+      return;
+    }
+    navigation.navigate("UserDetail", {
+      profile: row.partnerProfile,
+      scoreResult: calculateMatchScore(currentProfile, row.partnerProfile),
+    });
+  };
 
   useEffect(() => {
     if (!currentUser || !hasFirebaseConfig()) {
@@ -141,27 +173,43 @@ export function MatchesScreen() {
       }
       keyExtractor={(row) => row.match.matchId}
       renderItem={({ item }) => (
-        <Pressable
-          style={({ pressed }) => [styles.row, pressed && styles.pressed]}
-          onPress={() =>
-            navigation.navigate("Chat", {
-              matchId: item.match.matchId,
-              partnerName: item.partnerName,
-            })
-          }
-        >
-          <View style={styles.avatar}>
-            <Text style={styles.avatarText}>
-              {item.partnerName.charAt(0).toUpperCase() || "?"}
-            </Text>
-          </View>
-          <View style={styles.rowText}>
-            <Text style={styles.name}>{item.partnerName}</Text>
-            <Text style={styles.lastMessage} numberOfLines={1}>
-              {item.match.lastMessage ?? "Say hello!"}
-            </Text>
-          </View>
-        </Pressable>
+        <View style={styles.row}>
+          <Pressable
+            style={({ pressed }) => [
+              styles.profileTarget,
+              pressed && styles.pressed,
+            ]}
+            onPress={() => openPartnerProfile(item)}
+          >
+            <View style={styles.avatarWrap}>
+              <ProfileAvatar
+                profile={item.partnerProfile}
+                name={item.partnerName}
+                size={44}
+              />
+            </View>
+            <View style={styles.rowText}>
+              <Text style={styles.name}>{item.partnerName}</Text>
+              <Text style={styles.lastMessage} numberOfLines={1}>
+                {item.match.lastMessage ?? "Say hello!"}
+              </Text>
+            </View>
+          </Pressable>
+          <Pressable
+            style={({ pressed }) => [
+              styles.chatButton,
+              pressed && styles.pressed,
+            ]}
+            onPress={() =>
+              navigation.navigate("Chat", {
+                matchId: item.match.matchId,
+                partnerName: item.partnerName,
+              })
+            }
+          >
+            <Text style={styles.chatButtonText}>Chat</Text>
+          </Pressable>
+        </View>
       )}
     />
   );
@@ -192,25 +240,20 @@ const styles = StyleSheet.create({
     padding: spacing.md,
     marginBottom: spacing.md,
   },
+  profileTarget: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+  },
   pressed: {
     opacity: 0.8,
   },
-  avatar: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: colors.primarySoft,
-    alignItems: "center",
-    justifyContent: "center",
+  avatarWrap: {
     marginRight: spacing.md,
-  },
-  avatarText: {
-    fontSize: 18,
-    fontWeight: "700",
-    color: colors.primary,
   },
   rowText: {
     flex: 1,
+    marginRight: spacing.sm,
   },
   name: {
     ...typography.subtitle,
@@ -219,5 +262,17 @@ const styles = StyleSheet.create({
   lastMessage: {
     ...typography.caption,
     marginTop: 2,
+  },
+  chatButton: {
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.primary,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+  },
+  chatButtonText: {
+    ...typography.button,
+    color: colors.primary,
+    fontSize: 14,
   },
 });

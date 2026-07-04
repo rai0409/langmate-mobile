@@ -11,6 +11,7 @@ import type { MatchScoreResult, Profile } from "../types/domain";
 import { AppButton } from "./AppButton";
 import { Chip } from "./Chip";
 import { MatchReasonList } from "./MatchReasonList";
+import { ProfileAvatar } from "./ProfileAvatar";
 
 interface ProfileCardProps {
   profile: Profile;
@@ -38,6 +39,7 @@ export function ProfileCard({
       ) : null}
 
       <View style={styles.header}>
+        <ProfileAvatar profile={profile} size={52} />
         <View style={styles.headerText}>
           <Text style={styles.name}>{profile.displayName}</Text>
           {profile.country ? (
@@ -134,12 +136,12 @@ const styles = StyleSheet.create({
   },
   header: {
     flexDirection: "row",
-    justifyContent: "space-between",
     alignItems: "flex-start",
     marginBottom: spacing.sm,
   },
   headerText: {
     flex: 1,
+    marginLeft: spacing.md,
     marginRight: spacing.md,
   },
   name: {

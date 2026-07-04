@@ -40,6 +40,8 @@ export interface Profile {
   uid: string;
   displayName: string;
   avatarUrl?: string;
+  photoURL?: string;
+  photoUpdatedAt?: unknown;
   nativeLang: LanguageCode;
   targetLang: LanguageCode;
   level: UserLevel;
@@ -83,10 +85,18 @@ export interface Block {
   createdAt?: unknown;
 }
 
+export type ReportReason =
+  | "spam"
+  | "harassment"
+  | "inappropriate_content"
+  | "fake_profile"
+  | "other";
+
 export interface Report {
   reporterUid: string;
   reportedUid: string;
-  reason: string;
+  reason: ReportReason;
+  details?: string;
   createdAt?: unknown;
 }
 

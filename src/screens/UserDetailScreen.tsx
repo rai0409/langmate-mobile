@@ -1,9 +1,10 @@
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import React, { useState } from "react";
-import { ScrollView, StyleSheet, Text, View } from "react-native";
+import { ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { AppButton } from "../components/AppButton";
 import { Chip } from "../components/Chip";
 import { MatchReasonList } from "../components/MatchReasonList";
+import { ProfileAvatar } from "../components/ProfileAvatar";
 import {
   availabilityLabel,
   languageLabel,
@@ -16,6 +17,7 @@ import { createMatchIfMutualConnect } from "../repositories/matchRepository";
 import { blockUser, reportUser } from "../repositories/safetyRepository";
 import { createSwipe } from "../repositories/swipeRepository";
 import { colors, radius, spacing, typography } from "../theme/theme";
+import type { ReportReason } from "../types/domain";
 import type { RootStackParamList } from "../types/navigation";
 import { getErrorMessage } from "../utils/errorMessage";
 import { logDevError } from "../utils/logging";
@@ -23,10 +25,24 @@ import { notify } from "../utils/notify";
 
 type Props = NativeStackScreenProps<RootStackParamList, "UserDetail">;
 
-export function UserDetailScreen({ route, navigation }: Props) {
+const REPORT_REASONS: { value: ReportReason; label: string }[] = [
+  { value: "spam", label: "Spam" },
+  { value: "harassment", label: "Harassment" },
+  { value: "inappropriate_content", label: "Inappropriate content" },
+  { value: "fake_profile", label: "Fake profile" },
+  { value: "other", label: "Other" },
+];
+
+export function UserDetailScreen({ route }: Props) {
   const { profile, scoreResult, isPreview } = route.params;
   const { currentUser } = useAuth();
   const [busy, setBusy] = useState(false);
+  const [showReportForm, setShowReportForm] = useState(false);
+  const [reportReason, setReportReason] = useState<ReportReason>("spam");
+  const [reportDetails, setReportDetails] = useState("");
+  const [reportSent, setReportSent] = useState(false);
+  const [showBlockConfirm, setShowBlockConfirm] = useState(false);
+  const [isBlocked, setIsBlocked] = useState(false);
 
   // Preview/mock profiles must never produce Firestore writes: every action
   // below goes through this guard before touching a repository.
@@ -36,6 +52,10 @@ export function UserDetailScreen({ route, navigation }: Props) {
         "Preview only — nothing was saved",
         "This is a sample profile shown in preview mode. Connect, Report, and Block start working once Firebase is set up and real users join."
       );
+      return false;
+    }
+    if (profile.uid === currentUser.uid) {
+      notify("Action unavailable", "You cannot use this action on your own profile.");
       return false;
     }
     return true;
@@ -69,11 +89,19 @@ export function UserDetailScreen({ route, navigation }: Props) {
     }
   };
 
-  const handleReport = async () => {
+  const submitReport = async () => {
     if (!guardWrites()) return;
     setBusy(true);
     try {
-      await reportUser(currentUser!.uid, profile.uid, "MVP report");
+      await reportUser(
+        currentUser!.uid,
+        profile.uid,
+        reportReason,
+        reportDetails
+      );
+      setReportSent(true);
+      setShowReportForm(false);
+      setReportDetails("");
       notify("Report sent", "Thank you. Our team will review this profile.");
     } catch (e) {
       logDevError("UserDetailScreen.report", e);
@@ -88,11 +116,12 @@ export function UserDetailScreen({ route, navigation }: Props) {
     setBusy(true);
     try {
       await blockUser(currentUser!.uid, profile.uid);
+      setIsBlocked(true);
+      setShowBlockConfirm(false);
       notify(
         "User blocked",
         `${profile.displayName} has been blocked and will be hidden from your Discover and Matches.`
       );
-      navigation.goBack();
     } catch (e) {
       logDevError("UserDetailScreen.block", e);
       notify("Could not block user", getErrorMessage(e));
@@ -107,10 +136,13 @@ export function UserDetailScreen({ route, navigation }: Props) {
         <Text style={styles.previewNote}>Preview data — sample profile</Text>
       ) : null}
 
-      <Text style={styles.name}>{profile.displayName}</Text>
-      {profile.country ? (
-        <Text style={styles.country}>{profile.country}</Text>
-      ) : null}
+      <View style={styles.header}>
+        <ProfileAvatar profile={profile} size={84} />
+        <Text style={styles.name}>{profile.displayName}</Text>
+        {profile.country ? (
+          <Text style={styles.country}>{profile.country}</Text>
+        ) : null}
+      </View>
 
       <View style={styles.scoreCard}>
         {scoreResult.score !== null ? (
@@ -162,20 +194,114 @@ export function UserDetailScreen({ route, navigation }: Props) {
       ) : null}
 
       <View style={styles.actions}>
-        <AppButton title="Connect" onPress={handleConnect} disabled={busy} />
+        {isBlocked ? (
+          <View style={styles.blockedState}>
+            <Text style={styles.blockedTitle}>User blocked</Text>
+            <Text style={styles.blockedText}>
+              This user is blocked and will be hidden or restricted where block
+              filtering is available.
+            </Text>
+          </View>
+        ) : null}
+
+        {reportSent ? (
+          <View style={styles.reportSuccess}>
+            <Text style={styles.reportSuccessText}>
+              Report sent. Thank you for helping keep LangMate safe.
+            </Text>
+          </View>
+        ) : null}
+
+        {showReportForm ? (
+          <View style={styles.confirmCard}>
+            <Text style={styles.confirmTitle}>Report this profile?</Text>
+            <Text style={styles.confirmText}>
+              Choose a reason before sending a report. Nothing is saved if you
+              cancel.
+            </Text>
+            <View style={styles.reasonList}>
+              {REPORT_REASONS.map((reason) => (
+                <AppButton
+                  key={reason.value}
+                  title={reason.label}
+                  onPress={() => setReportReason(reason.value)}
+                  variant={
+                    reportReason === reason.value ? "primary" : "secondary"
+                  }
+                  disabled={busy}
+                />
+              ))}
+            </View>
+            <TextInput
+              style={styles.detailsInput}
+              value={reportDetails}
+              onChangeText={setReportDetails}
+              placeholder="Optional details"
+              placeholderTextColor={colors.textMuted}
+              multiline
+              editable={!busy}
+            />
+            <View style={styles.confirmActions}>
+              <AppButton
+                title="Cancel"
+                onPress={() => setShowReportForm(false)}
+                variant="ghost"
+                disabled={busy}
+              />
+              <View style={styles.actionGap} />
+              <AppButton
+                title="Send report"
+                onPress={submitReport}
+                variant="danger"
+                disabled={busy}
+              />
+            </View>
+          </View>
+        ) : null}
+
+        {showBlockConfirm ? (
+          <View style={styles.confirmCard}>
+            <Text style={styles.confirmTitle}>Block this user?</Text>
+            <Text style={styles.confirmText}>
+              Blocking {profile.displayName} will hide or restrict them in
+              areas that support block filtering, including chat.
+            </Text>
+            <View style={styles.confirmActions}>
+              <AppButton
+                title="Cancel"
+                onPress={() => setShowBlockConfirm(false)}
+                variant="ghost"
+                disabled={busy}
+              />
+              <View style={styles.actionGap} />
+              <AppButton
+                title="Block user"
+                onPress={handleBlock}
+                variant="danger"
+                disabled={busy}
+              />
+            </View>
+          </View>
+        ) : null}
+
+        <AppButton
+          title="Connect"
+          onPress={handleConnect}
+          disabled={busy || isBlocked}
+        />
         <View style={styles.gap} />
         <AppButton
           title="Report"
-          onPress={handleReport}
+          onPress={() => setShowReportForm(true)}
           variant="secondary"
-          disabled={busy}
+          disabled={busy || reportSent}
         />
         <View style={styles.gap} />
         <AppButton
           title="Block"
-          onPress={handleBlock}
+          onPress={() => setShowBlockConfirm(true)}
           variant="danger"
-          disabled={busy}
+          disabled={busy || isBlocked}
         />
       </View>
     </ScrollView>
@@ -210,12 +336,17 @@ const styles = StyleSheet.create({
     color: colors.danger,
     marginBottom: spacing.md,
   },
+  header: {
+    alignItems: "center",
+    marginBottom: spacing.lg,
+  },
   name: {
     ...typography.title,
+    marginTop: spacing.md,
   },
   country: {
     ...typography.caption,
-    marginBottom: spacing.md,
+    marginTop: 2,
   },
   scoreCard: {
     backgroundColor: colors.accentSoft,
@@ -244,6 +375,69 @@ const styles = StyleSheet.create({
   actions: {
     marginTop: spacing.lg,
     marginBottom: spacing.xxl,
+  },
+  blockedState: {
+    backgroundColor: colors.dangerSoft,
+    borderRadius: radius.md,
+    padding: spacing.md,
+    marginBottom: spacing.md,
+  },
+  blockedTitle: {
+    ...typography.subtitle,
+    color: colors.danger,
+    marginBottom: spacing.xs,
+  },
+  blockedText: {
+    ...typography.body,
+    color: colors.danger,
+  },
+  reportSuccess: {
+    backgroundColor: colors.accentSoft,
+    borderRadius: radius.md,
+    padding: spacing.md,
+    marginBottom: spacing.md,
+  },
+  reportSuccessText: {
+    ...typography.body,
+  },
+  confirmCard: {
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radius.md,
+    padding: spacing.md,
+    marginBottom: spacing.md,
+  },
+  confirmTitle: {
+    ...typography.subtitle,
+    marginBottom: spacing.xs,
+  },
+  confirmText: {
+    ...typography.body,
+    marginBottom: spacing.md,
+  },
+  reasonList: {
+    gap: spacing.sm,
+    marginBottom: spacing.md,
+  },
+  detailsInput: {
+    ...typography.body,
+    minHeight: 88,
+    textAlignVertical: "top",
+    backgroundColor: colors.background,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radius.md,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    marginBottom: spacing.md,
+  },
+  confirmActions: {
+    flexDirection: "row",
+    justifyContent: "flex-end",
+  },
+  actionGap: {
+    width: spacing.sm,
   },
   gap: {
     height: spacing.md,

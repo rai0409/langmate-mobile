@@ -2,6 +2,7 @@ import {
   addDoc,
   collection,
   doc,
+  getDoc,
   limitToLast,
   onSnapshot,
   orderBy,
@@ -10,7 +11,8 @@ import {
   setDoc,
 } from "firebase/firestore";
 import { getConfiguredDb } from "./firestoreHelpers";
-import type { ChatMessage } from "../types/domain";
+import { isBlockedBetween } from "./safetyRepository";
+import type { ChatMessage, Match } from "../types/domain";
 
 function messagesCollection(matchId: string) {
   return collection(getConfiguredDb(), "matches", matchId, "messages");
@@ -63,6 +65,21 @@ export async function sendMessage(
     throw new Error("Message text is empty. Write something before sending.");
   }
   const db = getConfiguredDb();
+  const matchSnapshot = await getDoc(doc(db, "matches", matchId));
+  if (!matchSnapshot.exists()) {
+    throw new Error("This chat is no longer available.");
+  }
+  const match = { ...(matchSnapshot.data() as Match), matchId };
+  if (!match.memberUids.includes(fromUid)) {
+    throw new Error("You are not a member of this chat.");
+  }
+  const otherUid = match.memberUids.find((uid) => uid !== fromUid);
+  if (!otherUid) {
+    throw new Error("This chat does not have another participant.");
+  }
+  if (await isBlockedBetween(fromUid, otherUid)) {
+    throw new Error("Messaging is disabled because one of you has blocked the other.");
+  }
   const message: ChatMessage = {
     fromUid,
     text: trimmed,
