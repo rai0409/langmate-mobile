@@ -26,6 +26,10 @@ exchange apps. No third-party branding, UI, text, or assets are copied.
 * Email/password signup and login with clear error states
 * Profile onboarding: display name, native/target language, level, learning
   goal, interests, availability, country, bio, discoverability toggle
+* Free/premium plan foundation with optional `entitlements/{uid}` reads
+  (missing entitlements default to free; real payments are not implemented)
+* Plan-limited language selection: free users can select one native and one
+  target language; premium entitlements allow more language selections
 * Profile photo upload:
 
   * users can select a profile photo from the device/browser
@@ -38,6 +42,7 @@ exchange apps. No third-party branding, UI, text, or assets are copied.
 * Reciprocal matching logic (your target language ↔ their native language)
 * Connect flow: a match is created only when both users choose Connect
 * Matches list with last message preview
+* In-app unread message counts with per-match badges and a Matches tab badge
 * Matches → UserDetail navigation
 * Chat → UserDetail navigation from the chat header/avatar
 * Realtime 1:1 chat using Firestore listeners
@@ -69,11 +74,9 @@ exchange apps. No third-party branding, UI, text, or assets are copied.
 
 * Real AI translation/correction/reply suggestions (buttons show mock previews)
 * Push notifications
-* Unread message count / notification count
 * Voice messages
 * Video/audio calls
-* Payments / paid plan enforcement
-* Free vs paid language-selection limits
+* Real payments / paid plan purchase flow
 * Production moderation tooling
 * Production account deletion processor
 * Production Cloud Functions
@@ -89,7 +92,7 @@ Recommended local Web startup command:
 
 ```bash
 cd /home/rai/dev/langexchange/langexchange_mobile
-npx expo start --web --port 8080 -c
+npm run web:8080
 ```
 
 Open:
@@ -102,7 +105,7 @@ For WSL / LAN / another device access, use:
 
 ```bash
 cd /home/rai/dev/langexchange/langexchange_mobile
-npx expo start --web --host 0.0.0.0 --port 8080 -c
+npm run web:8080:host
 ```
 
 Then open the host machine's IP address on port `8080`, for example:
@@ -160,34 +163,11 @@ Use port `8080` for Web development:
 ```bash
 npm start                         # Expo dev server
 npm run web                       # default Web dev server
-npx expo start --web --port 8080 -c
-npx expo start --web --host 0.0.0.0 --port 8080 -c
+npm run web:8080                  # Web dev server on port 8080
+npm run web:8080:host             # Web dev server on 0.0.0.0:8080
 npm run android                   # Android emulator/device
 npm run ios                       # iOS simulator/device
 npm run test:types                # TypeScript check (tsc --noEmit)
-```
-
-If you prefer a fixed npm script, add these scripts to `package.json`:
-
-```json
-{
-  "scripts": {
-    "web:8080": "expo start --web --port 8080 -c",
-    "web:8080:host": "expo start --web --host 0.0.0.0 --port 8080 -c"
-  }
-}
-```
-
-Then use:
-
-```bash
-npm run web:8080
-```
-
-or, for WSL/LAN access:
-
-```bash
-npm run web:8080:host
 ```
 
 ## Firebase collections
@@ -195,9 +175,11 @@ npm run web:8080:host
 | Collection                            | Document ID                   | Contents                                 |
 | ------------------------------------- | ----------------------------- | ---------------------------------------- |
 | `profiles/{uid}`                      | auth uid (never auto-ID)      | Profile, including optional `photoURL`   |
+| `entitlements/{uid}`                  | auth uid                      | optional plan entitlement                |
 | `swipes/{fromUid_toUid}`              | `${fromUid}_${toUid}`         | skip/connect swipe                       |
 | `matches/{matchId}`                   | sorted pair `uidA_uidB`       | memberUids, lastMessage, lastSentAt      |
 | `matches/{matchId}/messages/{autoId}` | auto-ID                       | fromUid, text, createdAt                 |
+| `matches/{matchId}/memberStates/{uid}` | auth uid                     | unreadCount, lastReadAt, muted           |
 | `blocks/{blockerUid_blockedUid}`      | `${blockerUid}_${blockedUid}` | block record                             |
 | `reports/{autoId}`                    | auto-ID                       | report record                            |
 | `accountDeletionRequests/{uid}`       | auth uid                      | non-destructive account deletion request |
@@ -256,6 +238,7 @@ The project includes strict, per-collection Firestore rules intended to protect:
 * member-only match reads
 * restricted match updates
 * member-only messages
+* owner-read member state for in-app unread counts
 * non-empty message text
 * block records readable by both blocker and blocked
 * create-only reports with no client reads
@@ -265,6 +248,13 @@ The project includes strict, per-collection Firestore rules intended to protect:
 Client-side block filtering improves UX, but it is not a complete security
 boundary. Production still needs deployed rules and, for stronger guarantees,
 server-side enforcement for sensitive workflows.
+
+Unread counts are currently an in-app MVP feature. Message sends increment the
+recipient's `matches/{matchId}/memberStates/{uid}.unreadCount` client-side, and
+opening a chat marks only the current user's member state read. Production
+unread counting and push notifications should move to Cloud Functions for
+server authority and reliable notification fanout. Push notifications are not
+implemented yet.
 
 ### Validate Firestore rules locally
 

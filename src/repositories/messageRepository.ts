@@ -1,16 +1,17 @@
 import {
-  addDoc,
   collection,
   doc,
   getDoc,
+  increment,
   limitToLast,
   onSnapshot,
   orderBy,
   query,
   serverTimestamp,
-  setDoc,
+  writeBatch,
 } from "firebase/firestore";
 import { getConfiguredDb } from "./firestoreHelpers";
+import { memberStateDocRef } from "./memberStateRepository";
 import { isBlockedBetween } from "./safetyRepository";
 import type { ChatMessage, Match } from "../types/domain";
 
@@ -85,10 +86,19 @@ export async function sendMessage(
     text: trimmed,
     createdAt: serverTimestamp(),
   };
-  await addDoc(messagesCollection(matchId), message);
-  await setDoc(
+  // MVP client-side unread update. Production should move unread counts and
+  // push notification fanout into Cloud Functions for reliable server authority.
+  const batch = writeBatch(db);
+  batch.set(doc(messagesCollection(matchId)), message);
+  batch.set(
     doc(db, "matches", matchId),
     { lastMessage: trimmed, lastSentAt: serverTimestamp() },
     { merge: true }
   );
+  batch.set(
+    memberStateDocRef(matchId, otherUid),
+    { unreadCount: increment(1), updatedAt: serverTimestamp() },
+    { merge: true }
+  );
+  await batch.commit();
 }

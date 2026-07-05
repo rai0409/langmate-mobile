@@ -2,12 +2,16 @@ import React from "react";
 import { StyleSheet, Text, View } from "react-native";
 import {
   availabilityLabel,
-  languageLabel,
   learningGoalLabel,
   levelLabel,
 } from "../constants/options";
 import { colors, radius, spacing, typography } from "../theme/theme";
 import type { MatchScoreResult, Profile } from "../types/domain";
+import {
+  formatLanguageList,
+  nativeLanguagesForProfile,
+  targetLanguagesForProfile,
+} from "../utils/profileLanguages";
 import { AppButton } from "./AppButton";
 import { Chip } from "./Chip";
 import { MatchReasonList } from "./MatchReasonList";
@@ -60,10 +64,10 @@ export function ProfileCard({
 
       <View style={styles.langRow}>
         <Text style={styles.langItem}>
-          Native: {languageLabel(profile.nativeLang)}
+          Native: {formatLanguageList(nativeLanguagesForProfile(profile))}
         </Text>
         <Text style={styles.langItem}>
-          Learning: {languageLabel(profile.targetLang)}
+          Learning: {formatLanguageList(targetLanguagesForProfile(profile))}
         </Text>
       </View>
       <View style={styles.langRow}>

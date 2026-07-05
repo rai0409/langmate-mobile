@@ -15,6 +15,7 @@ import { useAuth } from "../context/AuthContext";
 import { useCurrentProfile } from "../context/ProfileContext";
 import { hasFirebaseConfig } from "../firebase/config";
 import { listenMatchesForUser } from "../repositories/matchRepository";
+import { listenMemberState } from "../repositories/memberStateRepository";
 import { getProfile } from "../repositories/profileRepository";
 import {
   isUidBlocked,
@@ -50,6 +51,7 @@ export function MatchesScreen() {
   const [loading, setLoading] = useState(true);
   const [blockSets, setBlockSets] = useState<BlockSets>(EMPTY_BLOCK_SETS);
   const [warning, setWarning] = useState<string | null>(null);
+  const [unreadByMatch, setUnreadByMatch] = useState<Record<string, number>>({});
 
   useEffect(() => {
     if (!currentUser || !hasFirebaseConfig()) {
@@ -96,6 +98,31 @@ export function MatchesScreen() {
     );
     return unsubscribe;
   }, [currentUser]);
+
+  useEffect(() => {
+    if (!currentUser || !hasFirebaseConfig()) {
+      setUnreadByMatch({});
+      return;
+    }
+    const unsubscribes = rows.map((row) =>
+      listenMemberState(
+        row.match.matchId,
+        currentUser.uid,
+        (state) => {
+          setUnreadByMatch((prev) => ({
+            ...prev,
+            [row.match.matchId]: state.unreadCount,
+          }));
+        },
+        (error) => {
+          logDevError("MatchesScreen.listenMemberState", error);
+        }
+      )
+    );
+    return () => {
+      unsubscribes.forEach((unsubscribe) => unsubscribe());
+    };
+  }, [currentUser, rows]);
 
   const openPartnerProfile = (row: MatchRow) => {
     if (!currentUser || !currentProfile) {
@@ -207,7 +234,18 @@ export function MatchesScreen() {
               })
             }
           >
-            <Text style={styles.chatButtonText}>Chat</Text>
+            <View style={styles.chatButtonContent}>
+              <Text style={styles.chatButtonText}>Chat</Text>
+              {(unreadByMatch[item.match.matchId] ?? 0) > 0 ? (
+                <View style={styles.unreadBadge}>
+                  <Text style={styles.unreadBadgeText}>
+                    {unreadByMatch[item.match.matchId] > 99
+                      ? "99+"
+                      : unreadByMatch[item.match.matchId]}
+                  </Text>
+                </View>
+              ) : null}
+            </View>
           </Pressable>
         </View>
       )}
@@ -274,5 +312,26 @@ const styles = StyleSheet.create({
     ...typography.button,
     color: colors.primary,
     fontSize: 14,
+  },
+  chatButtonContent: {
+    minWidth: 58,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  unreadBadge: {
+    minWidth: 20,
+    height: 20,
+    borderRadius: radius.pill,
+    backgroundColor: colors.danger,
+    alignItems: "center",
+    justifyContent: "center",
+    marginLeft: spacing.sm,
+    paddingHorizontal: spacing.xs,
+  },
+  unreadBadgeText: {
+    color: "#FFFFFF",
+    fontSize: 11,
+    fontWeight: "700",
   },
 });

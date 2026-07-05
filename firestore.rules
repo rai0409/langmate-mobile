@@ -7,6 +7,8 @@
 //   swipes/{fromUid}_{toUid}             (setDoc; fromUid, toUid, action, createdAt)
 //   matches/{sortedUidA}_{sortedUidB}    (setDoc merge; matchId, memberUids[2], createdAt; + lastMessage/lastSentAt on update)
 //   matches/{matchId}/messages/{autoId}  (addDoc; fromUid, text, createdAt)
+//   matches/{matchId}/memberStates/{uid} (setDoc merge; unreadCount, lastReadAt, muted)
+//   entitlements/{uid}                   (read-only client entitlement; defaults to free if absent)
 //   blocks/{blockerUid}_{blockedUid}     (setDoc; blockerUid, blockedUid, createdAt)
 //   reports/{autoId}                     (addDoc; reporterUid, reportedUid, reason, createdAt)
 //   reportReviews/{reportId}             (admin-only review metadata; client denied)
@@ -120,10 +122,11 @@ service cloud.firestore {
       // --------------------------------------------------------
       // matches/{matchId}/messages/{autoId}
       // --------------------------------------------------------
+      function matchMembers() {
+        return get(/databases/$(database)/documents/matches/$(matchId)).data.memberUids;
+      }
+
       match /messages/{messageId} {
-        function matchMembers() {
-          return get(/databases/$(database)/documents/matches/$(matchId)).data.memberUids;
-        }
         // Members only.
         allow read: if isMember(matchMembers());
         // Members create their own messages with non-empty text.
@@ -133,6 +136,72 @@ service cloud.firestore {
           && request.resource.data.text.size() > 0;
         allow update, delete: if false;
       }
+
+      // --------------------------------------------------------
+      // matches/{matchId}/memberStates/{uid}
+      // --------------------------------------------------------
+      match /memberStates/{uid} {
+        function validMemberStateKeys() {
+          return request.resource.data.keys().hasOnly([
+            'unreadCount',
+            'lastReadAt',
+            'muted',
+            'updatedAt'
+          ]);
+        }
+
+        function validMemberStateValues() {
+          return (!('unreadCount' in request.resource.data)
+              || (request.resource.data.unreadCount is int
+                  && request.resource.data.unreadCount >= 0))
+            && (!('muted' in request.resource.data)
+              || request.resource.data.muted is bool);
+        }
+
+        function ownMemberStateWrite() {
+          return request.auth.uid == uid
+            && validMemberStateKeys()
+            && validMemberStateValues();
+        }
+
+        function recipientUnreadWrite() {
+          return request.auth.uid != uid
+            && request.auth.uid in matchMembers()
+            && uid in matchMembers()
+            && request.resource.data.diff(resource.data).affectedKeys()
+              .hasOnly(['unreadCount', 'updatedAt'])
+            && validMemberStateKeys()
+            && validMemberStateValues();
+        }
+
+        allow read: if signedIn()
+          && request.auth.uid == uid
+          && uid in matchMembers();
+        allow create: if signedIn()
+          && uid in matchMembers()
+          && (
+            ownMemberStateWrite()
+            || (request.auth.uid != uid
+                && request.auth.uid in matchMembers()
+                && request.resource.data.keys().hasOnly([
+                  'unreadCount',
+                  'updatedAt'
+                ])
+                && validMemberStateValues())
+          );
+        allow update: if signedIn()
+          && uid in matchMembers()
+          && (ownMemberStateWrite() || recipientUnreadWrite());
+        allow delete: if false;
+      }
+    }
+
+    // ----------------------------------------------------------
+    // entitlements/{uid} — optional read-only client entitlement.
+    // ----------------------------------------------------------
+    match /entitlements/{uid} {
+      allow get: if signedIn() && request.auth.uid == uid;
+      allow list, create, update, delete: if false;
     }
 
     // ----------------------------------------------------------

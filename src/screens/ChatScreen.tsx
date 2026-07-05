@@ -16,6 +16,7 @@ import { useAuth } from "../context/AuthContext";
 import { useCurrentProfile } from "../context/ProfileContext";
 import { hasFirebaseConfig } from "../firebase/config";
 import { getMatch } from "../repositories/matchRepository";
+import { markMatchRead } from "../repositories/memberStateRepository";
 import {
   listenMessages,
   sendMessage,
@@ -74,6 +75,13 @@ export function ChatScreen({ route, navigation }: Props) {
     );
     return unsubscribe;
   }, [matchId]);
+
+  useEffect(() => {
+    if (!currentUser || !hasFirebaseConfig()) return;
+    markMatchRead(matchId, currentUser.uid).catch((error) => {
+      logDevError("ChatScreen.markMatchRead", error);
+    });
+  }, [currentUser, matchId, messages.length]);
 
   useEffect(() => {
     if (!currentUser || !hasFirebaseConfig()) return;

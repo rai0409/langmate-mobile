@@ -29,6 +29,8 @@
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web",
+    "web:8080": "expo start --web --port 8080 -c",
+    "web:8080:host": "expo start --web --host 0.0.0.0 --port 8080 -c",
     "test:types": "tsc --noEmit",
     "test:rules": "firebase emulators:exec --only firestore --project demo-langmate \"node rules-tests/firestore.test.mjs\"",
     "moderation:fixture": "node scripts/moderation_review_fixture.mjs",

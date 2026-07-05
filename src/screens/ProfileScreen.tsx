@@ -8,7 +8,6 @@ import { Chip } from "../components/Chip";
 import { ProfileAvatar } from "../components/ProfileAvatar";
 import {
   availabilityLabel,
-  languageLabel,
   learningGoalLabel,
   levelLabel,
 } from "../constants/options";
@@ -19,6 +18,11 @@ import { colors, radius, spacing, typography } from "../theme/theme";
 import type { RootStackParamList } from "../types/navigation";
 import { logAppError } from "../utils/errorLogging";
 import { errorMessage, notify } from "../utils/notify";
+import {
+  formatLanguageList,
+  nativeLanguagesForProfile,
+  targetLanguagesForProfile,
+} from "../utils/profileLanguages";
 
 export function ProfileScreen() {
   const navigation =
@@ -117,8 +121,14 @@ export function ProfileScreen() {
 
       {profile ? (
         <View style={styles.card}>
-          <Row label="Native language" value={languageLabel(profile.nativeLang)} />
-          <Row label="Learning" value={languageLabel(profile.targetLang)} />
+          <Row
+            label="Native language"
+            value={formatLanguageList(nativeLanguagesForProfile(profile))}
+          />
+          <Row
+            label="Learning"
+            value={formatLanguageList(targetLanguagesForProfile(profile))}
+          />
           <Row label="Level" value={levelLabel(profile.level)} />
           <Row label="Goal" value={learningGoalLabel(profile.learningGoal)} />
           <Row

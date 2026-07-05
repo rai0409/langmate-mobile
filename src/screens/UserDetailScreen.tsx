@@ -7,7 +7,6 @@ import { MatchReasonList } from "../components/MatchReasonList";
 import { ProfileAvatar } from "../components/ProfileAvatar";
 import {
   availabilityLabel,
-  languageLabel,
   learningGoalLabel,
   levelLabel,
 } from "../constants/options";
@@ -22,6 +21,11 @@ import type { RootStackParamList } from "../types/navigation";
 import { getErrorMessage } from "../utils/errorMessage";
 import { logDevError } from "../utils/logging";
 import { notify } from "../utils/notify";
+import {
+  formatLanguageList,
+  nativeLanguagesForProfile,
+  targetLanguagesForProfile,
+} from "../utils/profileLanguages";
 
 type Props = NativeStackScreenProps<RootStackParamList, "UserDetail">;
 
@@ -158,10 +162,10 @@ export function UserDetailScreen({ route }: Props) {
 
       <Section title="Languages">
         <Text style={typography.body}>
-          Native: {languageLabel(profile.nativeLang)}
+          Native: {formatLanguageList(nativeLanguagesForProfile(profile))}
         </Text>
         <Text style={typography.body}>
-          Learning: {languageLabel(profile.targetLang)} (
+          Learning: {formatLanguageList(targetLanguagesForProfile(profile))} (
           {levelLabel(profile.level)})
         </Text>
         <Text style={typography.body}>

@@ -13,6 +13,8 @@ export type LanguageCode =
   | "id"
   | "other";
 
+export type Plan = "free" | "premium";
+
 export type UserLevel =
   | "beginner"
   | "elementary"
@@ -44,6 +46,8 @@ export interface Profile {
   photoUpdatedAt?: unknown;
   nativeLang: LanguageCode;
   targetLang: LanguageCode;
+  nativeLangs?: LanguageCode[];
+  targetLangs?: LanguageCode[];
   level: UserLevel;
   learningGoal: LearningGoal;
   interests: string[];
@@ -70,6 +74,19 @@ export interface Match {
   createdAt?: unknown;
   lastMessage?: string;
   lastSentAt?: unknown;
+}
+
+export interface Entitlement {
+  plan: Plan;
+  active: boolean;
+  updatedAt?: unknown;
+}
+
+export interface MatchMemberState {
+  unreadCount: number;
+  lastReadAt?: unknown;
+  muted?: boolean;
+  updatedAt?: unknown;
 }
 
 export interface ChatMessage {

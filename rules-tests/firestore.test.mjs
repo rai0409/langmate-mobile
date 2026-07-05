@@ -13,8 +13,10 @@ import {
   setDoc,
   updateDoc,
   addDoc,
+  increment,
   collection,
   getDocs,
+  writeBatch,
 } from "firebase/firestore";
 
 const ALICE = "alice";
@@ -190,6 +192,76 @@ await check("member can read messages", "allow",
   getDocs(collection(bobDb(), "matches", M1, "messages")));
 await check("non-member cannot read messages", "deny",
   getDocs(collection(carolDb(), "matches", M1, "messages")));
+{
+  const db = aliceDb();
+  const batch = writeBatch(db);
+  batch.set(doc(collection(db, "matches", M1, "messages")), {
+    fromUid: ALICE, text: "batched hello", createdAt: new Date(),
+  });
+  batch.set(doc(db, "matches", M1), {
+    lastMessage: "batched hello", lastSentAt: new Date(),
+  }, { merge: true });
+  batch.set(doc(db, "matches", M1, "memberStates", BOB), {
+    unreadCount: increment(1), updatedAt: new Date(),
+  }, { merge: true });
+  await check("member can batch message, match preview, and recipient unread", "allow",
+    batch.commit());
+}
+
+// =========================================================
+// memberStates (subcollection of matches/M1, members alice+bob)
+// =========================================================
+console.log("memberStates:");
+await testEnv.clearFirestore();
+await seed(async (db) => {
+  await setDoc(doc(db, "matches", M1), {
+    matchId: M1, memberUids: [ALICE, BOB], createdAt: new Date(),
+  });
+  await setDoc(doc(db, "matches", M1, "memberStates", BOB), {
+    unreadCount: 1, updatedAt: new Date(),
+  });
+});
+await check("member can read own memberState", "allow",
+  getDoc(doc(bobDb(), "matches", M1, "memberStates", BOB)));
+await check("member cannot read another memberState", "deny",
+  getDoc(doc(aliceDb(), "matches", M1, "memberStates", BOB)));
+await check("non-member cannot read memberState", "deny",
+  getDoc(doc(carolDb(), "matches", M1, "memberStates", BOB)));
+await check("member can mark own match read", "allow",
+  setDoc(doc(bobDb(), "matches", M1, "memberStates", BOB), {
+    unreadCount: 0, lastReadAt: new Date(), updatedAt: new Date(),
+  }, { merge: true }));
+await check("sender match member can increment recipient unread foundation", "allow",
+  setDoc(doc(aliceDb(), "matches", M1, "memberStates", BOB), {
+    unreadCount: 2, updatedAt: new Date(),
+  }, { merge: true }));
+await check("sender cannot update recipient lastReadAt", "deny",
+  updateDoc(doc(aliceDb(), "matches", M1, "memberStates", BOB), {
+    lastReadAt: new Date(),
+  }));
+await check("non-member cannot write memberState", "deny",
+  setDoc(doc(carolDb(), "matches", M1, "memberStates", BOB), {
+    unreadCount: 3, updatedAt: new Date(),
+  }, { merge: true }));
+
+// =========================================================
+// entitlements
+// =========================================================
+console.log("entitlements:");
+await testEnv.clearFirestore();
+await seed(async (db) => {
+  await setDoc(doc(db, "entitlements", ALICE), {
+    plan: "premium", active: true, updatedAt: new Date(),
+  });
+});
+await check("user can read own entitlement", "allow",
+  getDoc(doc(aliceDb(), "entitlements", ALICE)));
+await check("user cannot read another entitlement", "deny",
+  getDoc(doc(bobDb(), "entitlements", ALICE)));
+await check("client cannot write entitlement", "deny",
+  setDoc(doc(aliceDb(), "entitlements", ALICE), {
+    plan: "premium", active: true, updatedAt: new Date(),
+  }));
 
 // =========================================================
 // blocks

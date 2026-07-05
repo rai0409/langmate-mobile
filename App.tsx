@@ -12,6 +12,7 @@ import {
   ProfileProvider,
   useCurrentProfile,
 } from "./src/context/ProfileContext";
+import { UnreadProvider, useUnreadCounts } from "./src/context/UnreadContext";
 import { hasFirebaseConfig } from "./src/firebase/config";
 import { AuthScreen } from "./src/screens/AuthScreen";
 import { ChatScreen } from "./src/screens/ChatScreen";
@@ -31,6 +32,8 @@ const Stack = createNativeStackNavigator<RootStackParamList>();
 const Tabs = createBottomTabNavigator<MainTabsParamList>();
 
 function MainTabs() {
+  const { totalUnreadCount } = useUnreadCounts();
+
   return (
     <Tabs.Navigator
       screenOptions={({ route }) => ({
@@ -50,7 +53,18 @@ function MainTabs() {
       })}
     >
       <Tabs.Screen name="Discover" component={DiscoverScreen} />
-      <Tabs.Screen name="Matches" component={MatchesScreen} />
+      <Tabs.Screen
+        name="Matches"
+        component={MatchesScreen}
+        options={{
+          tabBarBadge:
+            totalUnreadCount > 0
+              ? totalUnreadCount > 99
+                ? "99+"
+                : totalUnreadCount
+              : undefined,
+        }}
+      />
       <Tabs.Screen name="Profile" component={ProfileScreen} />
     </Tabs.Navigator>
   );
@@ -83,34 +97,36 @@ function AppFlow() {
   }
 
   return (
-    <NavigationContainer>
-      <Stack.Navigator>
-        <Stack.Screen
-          name="MainTabs"
-          component={MainTabs}
-          options={{ headerShown: false }}
-        />
-        <Stack.Screen
-          name="UserDetail"
-          component={UserDetailScreen}
-          options={({ route }) => ({
-            title: route.params.profile.displayName,
-          })}
-        />
-        <Stack.Screen
-          name="Chat"
-          component={ChatScreen}
-          options={({ route }) => ({
-            title: route.params.partnerName ?? "Chat",
-          })}
-        />
-        <Stack.Screen
-          name="EditProfile"
-          component={EditProfileScreen}
-          options={{ title: "Edit Profile" }}
-        />
-      </Stack.Navigator>
-    </NavigationContainer>
+    <UnreadProvider>
+      <NavigationContainer>
+        <Stack.Navigator>
+          <Stack.Screen
+            name="MainTabs"
+            component={MainTabs}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="UserDetail"
+            component={UserDetailScreen}
+            options={({ route }) => ({
+              title: route.params.profile.displayName,
+            })}
+          />
+          <Stack.Screen
+            name="Chat"
+            component={ChatScreen}
+            options={({ route }) => ({
+              title: route.params.partnerName ?? "Chat",
+            })}
+          />
+          <Stack.Screen
+            name="EditProfile"
+            component={EditProfileScreen}
+            options={{ title: "Edit Profile" }}
+          />
+        </Stack.Navigator>
+      </NavigationContainer>
+    </UnreadProvider>
   );
 }
 

@@ -1,4 +1,9 @@
 import type { MatchScoreResult, Profile, UserLevel } from "../types/domain";
+import {
+  languageListsIntersect,
+  nativeLanguagesForProfile,
+  targetLanguagesForProfile,
+} from "../utils/profileLanguages";
 
 const LEVEL_VALUE: Record<UserLevel, number> = {
   beginner: 1,
@@ -13,12 +18,23 @@ export function calculateMatchScore(
   candidateProfile: Profile
 ): MatchScoreResult {
   const missingFields: string[] = [];
-  if (!currentProfile.nativeLang) missingFields.push("currentProfile.nativeLang");
-  if (!currentProfile.targetLang) missingFields.push("currentProfile.targetLang");
-  if (!candidateProfile.nativeLang)
+  const currentNativeLangs = nativeLanguagesForProfile(currentProfile);
+  const currentTargetLangs = targetLanguagesForProfile(currentProfile);
+  const candidateNativeLangs = nativeLanguagesForProfile(candidateProfile);
+  const candidateTargetLangs = targetLanguagesForProfile(candidateProfile);
+
+  if (currentNativeLangs.length === 0) {
+    missingFields.push("currentProfile.nativeLang");
+  }
+  if (currentTargetLangs.length === 0) {
+    missingFields.push("currentProfile.targetLang");
+  }
+  if (candidateNativeLangs.length === 0) {
     missingFields.push("candidateProfile.nativeLang");
-  if (!candidateProfile.targetLang)
+  }
+  if (candidateTargetLangs.length === 0) {
     missingFields.push("candidateProfile.targetLang");
+  }
 
   if (missingFields.length > 0) {
     return { score: null, whyMatched: [], missingFields };
@@ -28,8 +44,14 @@ export function calculateMatchScore(
   const whyMatched: string[] = [];
 
   // 1. Reciprocal language pair: max 45
-  const helpsMe = currentProfile.targetLang === candidateProfile.nativeLang;
-  const helpsThem = currentProfile.nativeLang === candidateProfile.targetLang;
+  const helpsMe = languageListsIntersect(
+    currentTargetLangs,
+    candidateNativeLangs
+  );
+  const helpsThem = languageListsIntersect(
+    candidateTargetLangs,
+    currentNativeLangs
+  );
   if (helpsMe) score += 25;
   if (helpsThem) score += 20;
   if (helpsMe && helpsThem) {

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   ScrollView,
   StyleSheet,
@@ -15,7 +15,9 @@ import {
   LEARNING_GOAL_OPTIONS,
   LEVEL_OPTIONS,
 } from "../constants/options";
+import { getPlanLimits } from "../config/planLimits";
 import { useAuth } from "../context/AuthContext";
+import { getUserPlan } from "../repositories/entitlementRepository";
 import { upsertProfile } from "../repositories/profileRepository";
 import { colors, spacing, typography } from "../theme/theme";
 import type {
@@ -23,10 +25,15 @@ import type {
   LanguageCode,
   LearningGoal,
   Profile,
+  Plan,
   UserLevel,
 } from "../types/domain";
 import { logAppError } from "../utils/errorLogging";
 import { errorMessage, notify } from "../utils/notify";
+import {
+  nativeLanguagesForProfile,
+  targetLanguagesForProfile,
+} from "../utils/profileLanguages";
 
 interface OnboardingScreenProps {
   existingProfile?: Profile | null;
@@ -42,11 +49,12 @@ export function OnboardingScreen({
   const [displayName, setDisplayName] = useState(
     existingProfile?.displayName ?? ""
   );
-  const [nativeLang, setNativeLang] = useState<LanguageCode | null>(
-    existingProfile?.nativeLang ?? null
+  const [plan, setPlan] = useState<Plan>("free");
+  const [nativeLangs, setNativeLangs] = useState<LanguageCode[]>(
+    existingProfile ? nativeLanguagesForProfile(existingProfile) : []
   );
-  const [targetLang, setTargetLang] = useState<LanguageCode | null>(
-    existingProfile?.targetLang ?? null
+  const [targetLangs, setTargetLangs] = useState<LanguageCode[]>(
+    existingProfile ? targetLanguagesForProfile(existingProfile) : []
   );
   const [level, setLevel] = useState<UserLevel | null>(
     existingProfile?.level ?? null
@@ -67,6 +75,21 @@ export function OnboardingScreen({
   );
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
+  const planLimits = getPlanLimits(plan);
+
+  useEffect(() => {
+    if (!currentUser) {
+      setPlan("free");
+      return;
+    }
+    let cancelled = false;
+    getUserPlan(currentUser.uid).then((nextPlan) => {
+      if (!cancelled) setPlan(nextPlan);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [currentUser]);
 
   const toggleAvailability = (slot: AvailabilitySlot) => {
     setAvailableTimes((prev) =>
@@ -74,16 +97,46 @@ export function OnboardingScreen({
     );
   };
 
+  const toggleLimitedLanguage = (
+    language: LanguageCode,
+    selectedLanguages: LanguageCode[],
+    setSelectedLanguages: React.Dispatch<React.SetStateAction<LanguageCode[]>>,
+    limit: number
+  ) => {
+    if (selectedLanguages.includes(language)) {
+      setSelectedLanguages((prev) => prev.filter((item) => item !== language));
+      return;
+    }
+    if (selectedLanguages.length >= limit) {
+      notify(
+        "Premium language limit",
+        "Premium will allow you to add more languages. Payments are not enabled in this MVP yet."
+      );
+      return;
+    }
+    setSelectedLanguages((prev) => [...prev, language]);
+  };
+
   const sameLangWarning =
-    nativeLang && targetLang && nativeLang === targetLang
+    nativeLangs.some((language) => targetLangs.includes(language))
       ? "Your native and target languages are the same. You can continue, but partner matching works best when they differ."
       : null;
 
   const save = async () => {
     const nextErrors: Record<string, string> = {};
     if (!displayName.trim()) nextErrors.displayName = "Display name is required.";
-    if (!nativeLang) nextErrors.nativeLang = "Native language is required.";
-    if (!targetLang) nextErrors.targetLang = "Target language is required.";
+    if (nativeLangs.length === 0) {
+      nextErrors.nativeLang = "Native language is required.";
+    } else if (nativeLangs.length > planLimits.nativeLanguages) {
+      nextErrors.nativeLang =
+        "Premium will allow you to add more languages. Payments are not enabled in this MVP yet.";
+    }
+    if (targetLangs.length === 0) {
+      nextErrors.targetLang = "Target language is required.";
+    } else if (targetLangs.length > planLimits.targetLanguages) {
+      nextErrors.targetLang =
+        "Premium will allow you to add more languages. Payments are not enabled in this MVP yet.";
+    }
     if (!level) nextErrors.level = "Level is required.";
     if (!learningGoal) nextErrors.learningGoal = "Learning goal is required.";
     if (!bio.trim()) nextErrors.bio = "Bio is required.";
@@ -103,8 +156,10 @@ export function OnboardingScreen({
         .filter(Boolean);
       await upsertProfile(currentUser.uid, {
         displayName: displayName.trim(),
-        nativeLang: nativeLang!,
-        targetLang: targetLang!,
+        nativeLang: nativeLangs[0]!,
+        targetLang: targetLangs[0]!,
+        nativeLangs,
+        targetLangs,
         level: level!,
         learningGoal: learningGoal!,
         interests,
@@ -145,25 +200,49 @@ export function OnboardingScreen({
       />
 
       <SectionLabel label="Native language" error={errors.nativeLang} />
+      <Text style={styles.limitHint}>
+        {plan === "premium" ? "Premium" : "Free"} plan: up to{" "}
+        {planLimits.nativeLanguages} native language
+        {planLimits.nativeLanguages === 1 ? "" : "s"}.
+      </Text>
       <View style={styles.chipRow}>
         {LANGUAGE_OPTIONS.map((o) => (
           <Chip
             key={`native-${o.value}`}
             label={o.label}
-            selected={nativeLang === o.value}
-            onPress={() => setNativeLang(o.value)}
+            selected={nativeLangs.includes(o.value)}
+            onPress={() =>
+              toggleLimitedLanguage(
+                o.value,
+                nativeLangs,
+                setNativeLangs,
+                planLimits.nativeLanguages
+              )
+            }
           />
         ))}
       </View>
 
       <SectionLabel label="Language you are learning" error={errors.targetLang} />
+      <Text style={styles.limitHint}>
+        {plan === "premium" ? "Premium" : "Free"} plan: up to{" "}
+        {planLimits.targetLanguages} target language
+        {planLimits.targetLanguages === 1 ? "" : "s"}.
+      </Text>
       <View style={styles.chipRow}>
         {LANGUAGE_OPTIONS.map((o) => (
           <Chip
             key={`target-${o.value}`}
             label={o.label}
-            selected={targetLang === o.value}
-            onPress={() => setTargetLang(o.value)}
+            selected={targetLangs.includes(o.value)}
+            onPress={() =>
+              toggleLimitedLanguage(
+                o.value,
+                targetLangs,
+                setTargetLangs,
+                planLimits.targetLanguages
+              )
+            }
           />
         ))}
       </View>
@@ -296,6 +375,10 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     flexWrap: "wrap",
     marginBottom: spacing.lg,
+  },
+  limitHint: {
+    ...typography.caption,
+    marginBottom: spacing.sm,
   },
   warning: {
     ...typography.caption,
