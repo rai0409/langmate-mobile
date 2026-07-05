@@ -9,6 +9,8 @@ import {
 import { AppButton } from "../components/AppButton";
 import { AppTextInput } from "../components/AppTextInput";
 import { Chip } from "../components/Chip";
+import { PlanBadge } from "../components/PlanBadge";
+import { UpgradeHintCard } from "../components/UpgradeHintCard";
 import {
   AVAILABILITY_OPTIONS,
   LANGUAGE_OPTIONS,
@@ -19,7 +21,7 @@ import { getPlanLimits } from "../config/planLimits";
 import { useAuth } from "../context/AuthContext";
 import { getUserPlan } from "../repositories/entitlementRepository";
 import { upsertProfile } from "../repositories/profileRepository";
-import { colors, spacing, typography } from "../theme/theme";
+import { colors, radius, spacing, typography } from "../theme/theme";
 import type {
   AvailabilitySlot,
   LanguageCode,
@@ -109,8 +111,8 @@ export function OnboardingScreen({
     }
     if (selectedLanguages.length >= limit) {
       notify(
-        "Premium language limit",
-        "Premium will allow you to add more languages. Payments are not enabled in this MVP yet."
+        "Free language limit",
+        "Premium preview allows more languages. Payments are not enabled in this preview build yet."
       );
       return;
     }
@@ -129,13 +131,13 @@ export function OnboardingScreen({
       nextErrors.nativeLang = "Native language is required.";
     } else if (nativeLangs.length > planLimits.nativeLanguages) {
       nextErrors.nativeLang =
-        "Premium will allow you to add more languages. Payments are not enabled in this MVP yet.";
+        "Premium will allow you to add more languages. Payments are not enabled in this preview build yet.";
     }
     if (targetLangs.length === 0) {
       nextErrors.targetLang = "Target language is required.";
     } else if (targetLangs.length > planLimits.targetLanguages) {
       nextErrors.targetLang =
-        "Premium will allow you to add more languages. Payments are not enabled in this MVP yet.";
+        "Premium will allow you to add more languages. Payments are not enabled in this preview build yet.";
     }
     if (!level) nextErrors.level = "Level is required.";
     if (!learningGoal) nextErrors.learningGoal = "Learning goal is required.";
@@ -191,6 +193,19 @@ export function OnboardingScreen({
         This is how partners will discover you.
       </Text>
 
+      <View style={styles.planSummary}>
+        <PlanBadge plan={plan} />
+        <Text style={styles.planSummaryText}>
+          {plan === "premium"
+            ? "Premium preview: up to 2 native languages and 3 learning languages."
+            : "Free plan: 1 native language, 1 learning language."}
+        </Text>
+        <Text style={styles.planSummaryMuted}>
+          Premium preview is read from your entitlement only. Payments are not
+          enabled in this preview build yet.
+        </Text>
+      </View>
+
       <AppTextInput
         label="Display name"
         value={displayName}
@@ -201,9 +216,10 @@ export function OnboardingScreen({
 
       <SectionLabel label="Native language" error={errors.nativeLang} />
       <Text style={styles.limitHint}>
-        {plan === "premium" ? "Premium" : "Free"} plan: up to{" "}
-        {planLimits.nativeLanguages} native language
-        {planLimits.nativeLanguages === 1 ? "" : "s"}.
+        Selected {nativeLangs.length} / {planLimits.nativeLanguages}.{" "}
+        {plan === "premium"
+          ? "Premium preview: up to 2 native languages."
+          : "Free plan: 1 native language."}
       </Text>
       <View style={styles.chipRow}>
         {LANGUAGE_OPTIONS.map((o) => (
@@ -225,9 +241,10 @@ export function OnboardingScreen({
 
       <SectionLabel label="Language you are learning" error={errors.targetLang} />
       <Text style={styles.limitHint}>
-        {plan === "premium" ? "Premium" : "Free"} plan: up to{" "}
-        {planLimits.targetLanguages} target language
-        {planLimits.targetLanguages === 1 ? "" : "s"}.
+        Selected {targetLangs.length} / {planLimits.targetLanguages}.{" "}
+        {plan === "premium"
+          ? "Premium preview: up to 3 learning languages."
+          : "Free plan: 1 learning language."}
       </Text>
       <View style={styles.chipRow}>
         {LANGUAGE_OPTIONS.map((o) => (
@@ -249,6 +266,19 @@ export function OnboardingScreen({
 
       {sameLangWarning ? (
         <Text style={styles.warning}>{sameLangWarning}</Text>
+      ) : null}
+
+      {plan === "free" ? (
+        <View style={styles.upgradeWrap}>
+          <UpgradeHintCard
+            onPreview={() =>
+              notify(
+                "Premium coming soon",
+                "Payments are not enabled in this preview build yet."
+              )
+            }
+          />
+        </View>
       ) : null}
 
       <SectionLabel label="Your level in that language" error={errors.level} />
@@ -359,6 +389,23 @@ const styles = StyleSheet.create({
     ...typography.caption,
     marginBottom: spacing.xl,
   },
+  planSummary: {
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radius.md,
+    padding: spacing.lg,
+    marginBottom: spacing.xl,
+  },
+  planSummaryText: {
+    ...typography.body,
+    fontWeight: "700",
+    marginTop: spacing.md,
+  },
+  planSummaryMuted: {
+    ...typography.caption,
+    marginTop: spacing.xs,
+  },
   sectionLabel: {
     marginBottom: spacing.sm,
   },
@@ -384,6 +431,9 @@ const styles = StyleSheet.create({
     ...typography.caption,
     color: colors.danger,
     marginBottom: spacing.lg,
+  },
+  upgradeWrap: {
+    marginBottom: spacing.xl,
   },
   toggleRow: {
     flexDirection: "row",

@@ -16,7 +16,7 @@ export async function incrementUnreadForRecipient(
   matchId: string,
   recipientUid: string
 ): Promise<void> {
-  // MVP client-side unread update. Production should move unread counts and
+  // Product-preview client-side unread update. Production should move unread counts and
   // push notification fanout into Cloud Functions for reliable server authority.
   await setDoc(
     memberStateDocRef(matchId, recipientUid),

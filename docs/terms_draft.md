@@ -19,7 +19,7 @@ Contact placeholder: support@example.invalid
 ## Service
 
 LangMate provides profile discovery, reciprocal matching, chat, and basic
-safety actions for language exchange. Learning support tools in the current MVP
+safety actions for language exchange. Learning support tools in the current product preview
 are mock previews only and do not provide real AI translation, correction, or
 reply generation.
 

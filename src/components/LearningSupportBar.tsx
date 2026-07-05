@@ -1,6 +1,6 @@
 import React from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
-import { colors, radius, spacing } from "../theme/theme";
+import { colors, radius, spacing, typography } from "../theme/theme";
 
 interface LearningSupportBarProps {
   onTranslate: () => void;
@@ -14,10 +14,13 @@ export function LearningSupportBar({
   onSuggestReply,
 }: LearningSupportBarProps) {
   return (
-    <View style={styles.bar}>
-      <SupportButton title="Translate" onPress={onTranslate} />
-      <SupportButton title="Correct" onPress={onCorrect} />
-      <SupportButton title="Suggest Reply" onPress={onSuggestReply} />
+    <View style={styles.wrap}>
+      <Text style={styles.label}>Learning tools preview - real AI is not connected yet</Text>
+      <View style={styles.bar}>
+        <SupportButton title="Translate" onPress={onTranslate} />
+        <SupportButton title="Correct" onPress={onCorrect} />
+        <SupportButton title="Suggest Reply" onPress={onSuggestReply} />
+      </View>
     </View>
   );
 }
@@ -40,10 +43,17 @@ function SupportButton({
 }
 
 const styles = StyleSheet.create({
+  wrap: {
+    paddingVertical: spacing.sm,
+  },
+  label: {
+    ...typography.caption,
+    fontWeight: "700",
+    marginBottom: spacing.xs,
+  },
   bar: {
     flexDirection: "row",
     gap: spacing.sm,
-    paddingVertical: spacing.sm,
   },
   button: {
     flex: 1,

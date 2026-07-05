@@ -18,7 +18,7 @@ export async function getUserPlan(uid: string): Promise<Plan> {
     }
     return DEFAULT_PLAN;
   } catch {
-    // Entitlements are optional in this MVP. Missing rules, missing documents,
+    // Entitlements are optional in this preview build. Missing rules, missing documents,
     // or transient read failures must not block existing free users.
     return DEFAULT_PLAN;
   }

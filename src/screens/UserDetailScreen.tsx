@@ -140,24 +140,35 @@ export function UserDetailScreen({ route }: Props) {
         <Text style={styles.previewNote}>Preview data — sample profile</Text>
       ) : null}
 
-      <View style={styles.header}>
-        <ProfileAvatar profile={profile} size={84} />
-        <Text style={styles.name}>{profile.displayName}</Text>
-        {profile.country ? (
-          <Text style={styles.country}>{profile.country}</Text>
-        ) : null}
-      </View>
+      <View style={styles.profileCard}>
+        <View style={styles.header}>
+          <ProfileAvatar profile={profile} size={92} />
+          <View style={styles.headerText}>
+            <Text style={styles.name}>{profile.displayName}</Text>
+            {profile.country ? (
+              <Text style={styles.country}>{profile.country}</Text>
+            ) : null}
+            <Text style={styles.languageSummary}>
+              Native: {formatLanguageList(nativeLanguagesForProfile(profile))}
+            </Text>
+            <Text style={styles.languageSummary}>
+              Learning: {formatLanguageList(targetLanguagesForProfile(profile))}
+            </Text>
+          </View>
+        </View>
 
-      <View style={styles.scoreCard}>
-        {scoreResult.score !== null ? (
-          <Text style={styles.score}>Match score: {scoreResult.score}</Text>
-        ) : (
-          <Text style={styles.score}>Needs more profile data</Text>
-        )}
-        <MatchReasonList
-          reasons={scoreResult.whyMatched}
-          missingFields={scoreResult.missingFields}
-        />
+        <View style={styles.scoreCard}>
+          {scoreResult.score !== null ? (
+            <Text style={styles.score}>Match score: {scoreResult.score}</Text>
+          ) : (
+            <Text style={styles.score}>Needs more profile data</Text>
+          )}
+          <Text style={styles.scoreCaption}>Why this profile was recommended</Text>
+          <MatchReasonList
+            reasons={scoreResult.whyMatched}
+            missingFields={scoreResult.missingFields}
+          />
+        </View>
       </View>
 
       <Section title="Languages">
@@ -340,26 +351,46 @@ const styles = StyleSheet.create({
     color: colors.danger,
     marginBottom: spacing.md,
   },
+  profileCard: {
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radius.md,
+    padding: spacing.lg,
+    marginBottom: spacing.lg,
+  },
   header: {
+    flexDirection: "row",
     alignItems: "center",
     marginBottom: spacing.lg,
   },
+  headerText: {
+    flex: 1,
+    marginLeft: spacing.lg,
+  },
   name: {
     ...typography.title,
-    marginTop: spacing.md,
   },
   country: {
     ...typography.caption,
     marginTop: 2,
   },
+  languageSummary: {
+    ...typography.caption,
+    marginTop: spacing.xs,
+  },
   scoreCard: {
     backgroundColor: colors.accentSoft,
     borderRadius: radius.md,
     padding: spacing.lg,
-    marginBottom: spacing.lg,
   },
   score: {
     ...typography.subtitle,
+    marginBottom: spacing.xs,
+  },
+  scoreCaption: {
+    ...typography.caption,
+    fontWeight: "700",
     marginBottom: spacing.sm,
   },
   section: {

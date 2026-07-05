@@ -5,7 +5,7 @@ profile with their native and target languages, discover compatible partners
 through reciprocal language matching, connect with each other, and practice
 together in realtime chat with a lightweight learning-support UI.
 
-This is an original MVP inspired by the general product category of language
+This is an original commercial product preview inspired by the general product category of language
 exchange apps. No third-party branding, UI, text, or assets are copied.
 
 ## Tech stack
@@ -26,10 +26,15 @@ exchange apps. No third-party branding, UI, text, or assets are copied.
 * Email/password signup and login with clear error states
 * Profile onboarding: display name, native/target language, level, learning
   goal, interests, availability, country, bio, discoverability toggle
+* Commercial beta UI polish for onboarding, profile, matches, chat, and user
+  detail screens
 * Free/premium plan foundation with optional `entitlements/{uid}` reads
   (missing entitlements default to free; real payments are not implemented)
+* Plan badge and premium preview card for demo clarity; payments are still not
+  implemented
 * Plan-limited language selection: free users can select one native and one
   target language; premium entitlements allow more language selections
+* Profile completeness UI to guide users toward a stronger private beta profile
 * Profile photo upload:
 
   * users can select a profile photo from the device/browser
@@ -42,7 +47,8 @@ exchange apps. No third-party branding, UI, text, or assets are copied.
 * Reciprocal matching logic (your target language ↔ their native language)
 * Connect flow: a match is created only when both users choose Connect
 * Matches list with last message preview
-* In-app unread message counts with per-match badges and a Matches tab badge
+* In-app unread message counts with polished per-match badges and a Matches tab
+  badge
 * Matches → UserDetail navigation
 * Chat → UserDetail navigation from the chat header/avatar
 * Realtime 1:1 chat using Firestore listeners
@@ -52,7 +58,7 @@ exchange apps. No third-party branding, UI, text, or assets are copied.
   * duplicate sends are prevented while a send is already in progress
   * send failures are shown to the user
 * Learning support bar in chat: Translate / Correct / Suggest Reply
-  (mock previews only — no real AI calls)
+  (mock previews only — real AI tools are still not implemented)
 * Safety:
 
   * Report actions with reason selection
@@ -249,7 +255,7 @@ Client-side block filtering improves UX, but it is not a complete security
 boundary. Production still needs deployed rules and, for stronger guarantees,
 server-side enforcement for sensitive workflows.
 
-Unread counts are currently an in-app MVP feature. Message sends increment the
+Unread counts are currently an in-app product preview feature. Message sends increment the
 recipient's `matches/{matchId}/memberStates/{uid}.unreadCount` client-side, and
 opening a chat marks only the current user's member state read. Production
 unread counting and push notifications should move to Cloud Functions for
@@ -318,7 +324,7 @@ firebase deploy --only storage
 
 ## Prompt004 hardening
 
-Local hardening applied on top of the initial MVP:
+Local hardening applied on top of the initial product preview:
 
 * **Block filtering (client-side).** Discover excludes users you blocked and
   users who blocked you; Matches hides matches whose partner is blocked in
@@ -335,7 +341,7 @@ Local hardening applied on top of the initial MVP:
 
 ## UX and safety hardening
 
-Recent MVP hardening adds:
+Recent product hardening adds:
 
 * Matches screen rows/cards can navigate to the other user's UserDetail screen.
 * Chat header/avatar can navigate to the other user's UserDetail screen.
@@ -628,7 +634,7 @@ Then stop the conflicting process or update the emulator port in `firebase.json`
 Current status:
 
 ```text
-MVP app: implemented
+Commercial product preview: implemented
 Email/password auth: implemented
 Profile onboarding: implemented
 Profile photo upload: implemented

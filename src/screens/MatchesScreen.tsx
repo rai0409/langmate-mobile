@@ -196,7 +196,16 @@ export function MatchesScreen() {
       contentContainerStyle={styles.list}
       data={visibleRows}
       ListHeaderComponent={
-        warning ? <Text style={styles.warning}>{warning}</Text> : null
+        <>
+          <View style={styles.infoCard}>
+            <Text style={styles.infoTitle}>In-app unread counts are live</Text>
+            <Text style={styles.infoText}>
+              Badges show unread messages inside the app. Push notifications
+              are coming later.
+            </Text>
+          </View>
+          {warning ? <Text style={styles.warning}>{warning}</Text> : null}
+        </>
       }
       keyExtractor={(row) => row.match.matchId}
       renderItem={({ item }) => (
@@ -216,7 +225,20 @@ export function MatchesScreen() {
               />
             </View>
             <View style={styles.rowText}>
-              <Text style={styles.name}>{item.partnerName}</Text>
+              <View style={styles.nameRow}>
+                <Text style={styles.name} numberOfLines={1}>
+                  {item.partnerName}
+                </Text>
+                {(unreadByMatch[item.match.matchId] ?? 0) > 0 ? (
+                  <View style={styles.unreadBadge}>
+                    <Text style={styles.unreadBadgeText}>
+                      {unreadByMatch[item.match.matchId] > 99
+                        ? "99+"
+                        : unreadByMatch[item.match.matchId]}
+                    </Text>
+                  </View>
+                ) : null}
+              </View>
               <Text style={styles.lastMessage} numberOfLines={1}>
                 {item.match.lastMessage ?? "Say hello!"}
               </Text>
@@ -234,18 +256,7 @@ export function MatchesScreen() {
               })
             }
           >
-            <View style={styles.chatButtonContent}>
-              <Text style={styles.chatButtonText}>Chat</Text>
-              {(unreadByMatch[item.match.matchId] ?? 0) > 0 ? (
-                <View style={styles.unreadBadge}>
-                  <Text style={styles.unreadBadgeText}>
-                    {unreadByMatch[item.match.matchId] > 99
-                      ? "99+"
-                      : unreadByMatch[item.match.matchId]}
-                  </Text>
-                </View>
-              ) : null}
-            </View>
+            <Text style={styles.chatButtonText}>Chat</Text>
           </Pressable>
         </View>
       )}
@@ -267,6 +278,23 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.md,
+  },
+  infoCard: {
+    backgroundColor: colors.primarySoft,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+    padding: spacing.md,
+    marginBottom: spacing.md,
+  },
+  infoTitle: {
+    ...typography.caption,
+    color: colors.primary,
+    fontWeight: "700",
+  },
+  infoText: {
+    ...typography.caption,
+    marginTop: spacing.xs,
   },
   row: {
     flexDirection: "row",
@@ -296,6 +324,11 @@ const styles = StyleSheet.create({
   name: {
     ...typography.subtitle,
     fontSize: 16,
+    flexShrink: 1,
+  },
+  nameRow: {
+    flexDirection: "row",
+    alignItems: "center",
   },
   lastMessage: {
     ...typography.caption,
@@ -312,12 +345,6 @@ const styles = StyleSheet.create({
     ...typography.button,
     color: colors.primary,
     fontSize: 14,
-  },
-  chatButtonContent: {
-    minWidth: 58,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
   },
   unreadBadge: {
     minWidth: 20,

@@ -132,11 +132,15 @@ export function ChatScreen({ route, navigation }: Props) {
       (blocks) => {
         const blockSets = toBlockSets(currentUser.uid, blocks);
         if (blockSets.blockedByMe.has(partnerUid)) {
-          setBlockedMessage("You blocked this user. Messaging is disabled.");
+          setBlockedMessage(
+            "Messaging is disabled for this match. You blocked this user."
+          );
         } else if (blockSets.blockedMe.has(partnerUid)) {
-          setBlockedMessage("This user has blocked you. Messaging is disabled.");
+          setBlockedMessage(
+            "Messaging is disabled for this match. This user blocked you."
+          );
         } else if (isUidBlocked(blockSets, partnerUid)) {
-          setBlockedMessage("Messaging is disabled for this chat.");
+          setBlockedMessage("Messaging is disabled for this match.");
         } else {
           setBlockedMessage(null);
         }
@@ -144,7 +148,7 @@ export function ChatScreen({ route, navigation }: Props) {
       (error) => {
         logDevError("ChatScreen.listenBlocks", error);
         setBlockedMessage(
-          "Could not verify block status. Messaging is disabled until you reopen this chat."
+          "Messaging is disabled for this match. Could not verify block status until you reopen this chat."
         );
       }
     );
@@ -263,9 +267,18 @@ export function ChatScreen({ route, navigation }: Props) {
           );
         }}
         ListEmptyComponent={
-          <Text style={styles.emptyText}>
-            No messages yet. Break the ice — even a simple hello works.
-          </Text>
+          <View style={styles.emptyCard}>
+            <Text style={styles.emptyTitle}>Start the conversation</Text>
+            <Text style={styles.emptyText}>
+              Send a first message about what you want to practice.
+            </Text>
+            <Text style={styles.starterText}>
+              Try: "Hi, what language goal are you working on this week?"
+            </Text>
+            <Text style={styles.starterText}>
+              Or: "Want to trade short text practice messages today?"
+            </Text>
+          </View>
         }
       />
 
@@ -290,10 +303,14 @@ export function ChatScreen({ route, navigation }: Props) {
       <View style={styles.inputArea}>
         <LearningSupportBar
           onTranslate={() =>
-            setSupportNote("Translation preview will appear here.")
+            setSupportNote(
+              "Translation preview will appear here. Real AI is not connected yet."
+            )
           }
           onCorrect={() =>
-            setSupportNote("Correction preview will appear here.")
+            setSupportNote(
+              "Correction preview will appear here. Real AI is not connected yet."
+            )
           }
           onSuggestReply={() =>
             !inputDisabled &&
@@ -306,9 +323,7 @@ export function ChatScreen({ route, navigation }: Props) {
             value={draft}
             onChangeText={setDraft}
             editable={!inputDisabled}
-            placeholder={
-              blockedMessage ? "Messaging is disabled" : "Write a message..."
-            }
+            placeholder={blockedMessage ? "Messaging is disabled" : "Write a message..."}
             placeholderTextColor={colors.textMuted}
             multiline
           />
@@ -321,7 +336,7 @@ export function ChatScreen({ route, navigation }: Props) {
               inputDisabled && styles.sendDisabled,
             ]}
           >
-            <Text style={styles.sendText}>{sending ? "Sending" : "Send"}</Text>
+            <Text style={styles.sendText}>{sending ? "Sending..." : "Send"}</Text>
           </Pressable>
         </View>
       </View>
@@ -354,10 +369,33 @@ const styles = StyleSheet.create({
     fontSize: 16,
     maxWidth: 190,
   },
-  emptyText: {
-    ...typography.caption,
-    textAlign: "center",
+  emptyCard: {
+    alignSelf: "stretch",
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radius.md,
+    padding: spacing.lg,
     marginTop: spacing.xxl,
+  },
+  emptyTitle: {
+    ...typography.subtitle,
+    fontSize: 16,
+    textAlign: "center",
+    marginBottom: spacing.xs,
+  },
+  emptyText: {
+    ...typography.body,
+    color: colors.textMuted,
+    textAlign: "center",
+    marginBottom: spacing.md,
+  },
+  starterText: {
+    ...typography.caption,
+    backgroundColor: colors.primarySoft,
+    borderRadius: radius.sm,
+    padding: spacing.sm,
+    marginTop: spacing.sm,
   },
   bubble: {
     maxWidth: "80%",

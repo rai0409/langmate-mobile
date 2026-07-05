@@ -86,7 +86,7 @@ export async function sendMessage(
     text: trimmed,
     createdAt: serverTimestamp(),
   };
-  // MVP client-side unread update. Production should move unread counts and
+  // Product-preview client-side unread update. Production should move unread counts and
   // push notification fanout into Cloud Functions for reliable server authority.
   const batch = writeBatch(db);
   batch.set(doc(messagesCollection(matchId)), message);

@@ -1,11 +1,14 @@
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import * as ImagePicker from "expo-image-picker";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { ScrollView, StyleSheet, Text, View } from "react-native";
 import { AppButton } from "../components/AppButton";
 import { Chip } from "../components/Chip";
+import { PlanBadge } from "../components/PlanBadge";
 import { ProfileAvatar } from "../components/ProfileAvatar";
+import { ProfileCompletenessCard } from "../components/ProfileCompletenessCard";
+import { UpgradeHintCard } from "../components/UpgradeHintCard";
 import {
   availabilityLabel,
   learningGoalLabel,
@@ -13,8 +16,10 @@ import {
 } from "../constants/options";
 import { useAuth } from "../context/AuthContext";
 import { useCurrentProfile } from "../context/ProfileContext";
+import { getUserPlan } from "../repositories/entitlementRepository";
 import { uploadProfilePhoto } from "../repositories/storageRepository";
 import { colors, radius, spacing, typography } from "../theme/theme";
+import type { Plan } from "../types/domain";
 import type { RootStackParamList } from "../types/navigation";
 import { logAppError } from "../utils/errorLogging";
 import { errorMessage, notify } from "../utils/notify";
@@ -31,6 +36,21 @@ export function ProfileScreen() {
   const { profile } = useCurrentProfile();
   const [signingOut, setSigningOut] = useState(false);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [plan, setPlan] = useState<Plan>("free");
+
+  useEffect(() => {
+    if (!currentUser) {
+      setPlan("free");
+      return;
+    }
+    let cancelled = false;
+    getUserPlan(currentUser.uid).then((nextPlan) => {
+      if (!cancelled) setPlan(nextPlan);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [currentUser]);
 
   const handleSignOut = async () => {
     if (signingOut) return;
@@ -96,12 +116,15 @@ export function ProfileScreen() {
         <ProfileAvatar
           profile={profile}
           name={profile?.displayName ?? "Your profile"}
-          size={72}
+          size={96}
         />
         <Text style={styles.name}>{profile?.displayName ?? "Your profile"}</Text>
         {profile?.country ? (
           <Text style={styles.caption}>{profile.country}</Text>
         ) : null}
+        <View style={styles.badgeWrap}>
+          <PlanBadge plan={plan} />
+        </View>
         <View style={styles.photoAction}>
           <AppButton
             title={uploadingPhoto ? "Uploading..." : "Change Photo"}
@@ -112,15 +135,12 @@ export function ProfileScreen() {
         </View>
       </View>
 
-      <View style={styles.sessionCard}>
-        <Text style={styles.sessionTitle}>Signed in as</Text>
-        <Text style={styles.sessionEmail}>{signedInLabel}</Text>
-        <Text style={styles.uidLabel}>UID</Text>
-        <Text style={styles.uidValue}>{signedInUid}</Text>
+      <View style={styles.stackGap}>
+        <ProfileCompletenessCard profile={profile} />
       </View>
 
       {profile ? (
-        <View style={styles.card}>
+        <View style={[styles.card, styles.stackGap]}>
           <Row
             label="Native language"
             value={formatLanguageList(nativeLanguagesForProfile(profile))}
@@ -161,6 +181,26 @@ export function ProfileScreen() {
       ) : (
         <Text style={styles.caption}>No profile saved yet.</Text>
       )}
+
+      {plan === "free" ? (
+        <View style={styles.stackGap}>
+          <UpgradeHintCard
+            onPreview={() =>
+              notify(
+                "Premium coming soon",
+                "Payments are not enabled in this preview build yet."
+              )
+            }
+          />
+        </View>
+      ) : null}
+
+      <View style={styles.sessionCard}>
+        <Text style={styles.sessionTitle}>QA / debug account</Text>
+        <Text style={styles.sessionEmail}>{signedInLabel}</Text>
+        <Text style={styles.uidLabel}>UID</Text>
+        <Text style={styles.uidValue}>{signedInUid}</Text>
+      </View>
 
       <View style={styles.actions}>
         <AppButton
@@ -210,6 +250,9 @@ const styles = StyleSheet.create({
     ...typography.caption,
     marginTop: 2,
   },
+  badgeWrap: {
+    marginTop: spacing.sm,
+  },
   photoAction: {
     marginTop: spacing.md,
     minWidth: 160,
@@ -227,7 +270,8 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
     borderRadius: radius.md,
     padding: spacing.lg,
-    marginBottom: spacing.lg,
+    marginTop: spacing.lg,
+    opacity: 0.82,
   },
   sessionTitle: {
     ...typography.caption,
@@ -247,6 +291,9 @@ const styles = StyleSheet.create({
   },
   uidValue: {
     ...typography.caption,
+  },
+  stackGap: {
+    marginBottom: spacing.lg,
   },
   row: {
     flexDirection: "row",
