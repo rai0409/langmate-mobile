@@ -75,6 +75,8 @@ exchange apps. No third-party branding, UI, text, or assets are copied.
   safer Web QA account switching
 * Local-only moderation fixture workflow
 * Local-only account deletion request fixture workflow
+* Server-authority Firebase Functions workspace and backend workflow docs for
+  unread counts, notification outbox, account deletion, and moderation
 
 ## Not implemented yet
 
@@ -83,10 +85,10 @@ exchange apps. No third-party branding, UI, text, or assets are copied.
 * Voice messages
 * Video/audio calls
 * Real payments / paid plan purchase flow
+* Real push delivery
 * Production moderation tooling
 * Production account deletion processor
-* Production Cloud Functions
-* Production admin dashboard
+* Admin moderation dashboard
 * Final legally reviewed privacy policy / terms / retention policy
 * App Store / Google Play release flow
 
@@ -255,12 +257,7 @@ Client-side block filtering improves UX, but it is not a complete security
 boundary. Production still needs deployed rules and, for stronger guarantees,
 server-side enforcement for sensitive workflows.
 
-Unread counts are currently an in-app product preview feature. Message sends increment the
-recipient's `matches/{matchId}/memberStates/{uid}.unreadCount` client-side, and
-opening a chat marks only the current user's member state read. Production
-unread counting and push notifications should move to Cloud Functions for
-server authority and reliable notification fanout. Push notifications are not
-implemented yet.
+Unread counts currently remain compatible with the in-app product preview path. A Firebase Functions workspace now includes a server-authority unread scaffold for `matches/{matchId}/messages/{messageId}` creation and a `notificationOutbox/{autoId}` handoff. Client-side unread fallback remains until the server-authority path is deployed and verified. Real push delivery is not implemented yet.
 
 ### Validate Firestore rules locally
 
@@ -652,7 +649,7 @@ Moderation fixture: local-only
 Account deletion fixture: local-only
 Push notifications: not implemented
 Payments: not implemented
-Cloud Functions: not implemented
+Cloud Functions workspace: scaffolded, deployment not confirmed
 Admin dashboard: not implemented
 App Store / Google Play release: not implemented
 ```
