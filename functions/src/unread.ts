@@ -28,7 +28,11 @@ export const incrementUnreadForMessage = onDocumentCreated(
     }
 
     const { matchId, messageId } = event.params;
-    const message = messageSnapshot.data() as MessageDocument;
+    const message = messageSnapshot.data() as MessageDocument | undefined;
+    if (!message) {
+      return;
+    }
+
     const senderUid = message.fromUid;
 
     if (typeof senderUid !== "string" || senderUid.length === 0) {

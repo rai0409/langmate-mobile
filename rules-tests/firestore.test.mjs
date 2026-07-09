@@ -296,12 +296,12 @@ console.log("reports:");
 await testEnv.clearFirestore();
 await seed(async (db) => {
   await setDoc(doc(db, "reports", "seed1"), {
-    reporterUid: ALICE, reportedUid: BOB, reason: "MVP report", createdAt: new Date(),
+    reporterUid: ALICE, reportedUid: BOB, reason: "test report", createdAt: new Date(),
   });
 });
 await check("reporter can create report", "allow",
   addDoc(collection(aliceDb(), "reports"), {
-    reporterUid: ALICE, reportedUid: BOB, reason: "MVP report", createdAt: new Date(),
+    reporterUid: ALICE, reportedUid: BOB, reason: "test report", createdAt: new Date(),
   }));
 await check("reporter cannot spoof reporterUid", "deny",
   addDoc(collection(aliceDb(), "reports"), {

@@ -33,6 +33,7 @@
     "web:8080:host": "expo start --web --host 0.0.0.0 --port 8080 -c",
     "test:types": "tsc --noEmit",
     "test:rules": "firebase emulators:exec --only firestore --project demo-langmate \"node rules-tests/firestore.test.mjs\"",
+    "test:functions:unread": "npm --prefix functions run build && firebase emulators:exec --only firestore,functions --project demo-langmate \"node scripts/functions_unread_e2e.mjs\"",
     "moderation:fixture": "node scripts/moderation_review_fixture.mjs",
     "account-deletion:fixture": "node scripts/account_deletion_request_fixture.mjs"
   },
