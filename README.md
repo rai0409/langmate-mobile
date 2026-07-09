@@ -257,7 +257,13 @@ Client-side block filtering improves UX, but it is not a complete security
 boundary. Production still needs deployed rules and, for stronger guarantees,
 server-side enforcement for sensitive workflows.
 
-Unread counts currently remain compatible with the in-app product preview path. A Firebase Functions workspace now includes a server-authority unread scaffold for `matches/{matchId}/messages/{messageId}` creation and a `notificationOutbox/{autoId}` handoff. Client-side unread fallback remains until the server-authority path is deployed and verified. Real push delivery is not implemented yet.
+Unread counts are being shifted toward server authority. The client writes
+messages and match previews; the Firebase Functions scaffold is intended to
+increment recipient unread counts after `matches/{matchId}/messages/{messageId}`
+creation and create a `notificationOutbox/{autoId}` handoff. A local client
+fallback remains behind `USE_SERVER_UNREAD_AUTHORITY=false` for environments
+without deployed Functions. Real push delivery is not implemented yet, and
+deployment is not confirmed.
 
 ### Validate Firestore rules locally
 
@@ -650,6 +656,7 @@ Account deletion fixture: local-only
 Push notifications: not implemented
 Payments: not implemented
 Cloud Functions workspace: scaffolded, deployment not confirmed
+Server-authority unread path: client switch prepared, deployment not confirmed
 Admin dashboard: not implemented
 App Store / Google Play release: not implemented
 ```

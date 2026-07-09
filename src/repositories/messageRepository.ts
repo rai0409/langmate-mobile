@@ -10,6 +10,7 @@ import {
   serverTimestamp,
   writeBatch,
 } from "firebase/firestore";
+import { USE_SERVER_UNREAD_AUTHORITY } from "../config/unreadAuthority";
 import { getConfiguredDb } from "./firestoreHelpers";
 import { memberStateDocRef } from "./memberStateRepository";
 import { isBlockedBetween } from "./safetyRepository";
@@ -86,8 +87,6 @@ export async function sendMessage(
     text: trimmed,
     createdAt: serverTimestamp(),
   };
-  // Product-preview client-side unread update. Production should move unread counts and
-  // push notification fanout into Cloud Functions for reliable server authority.
   const batch = writeBatch(db);
   batch.set(doc(messagesCollection(matchId)), message);
   batch.set(
@@ -95,10 +94,15 @@ export async function sendMessage(
     { lastMessage: trimmed, lastSentAt: serverTimestamp() },
     { merge: true }
   );
-  batch.set(
-    memberStateDocRef(matchId, otherUid),
-    { unreadCount: increment(1), updatedAt: serverTimestamp() },
-    { merge: true }
-  );
+  if (USE_SERVER_UNREAD_AUTHORITY) {
+    // Server-authority unread counting is handled by Firebase Functions.
+  } else {
+    // Local fallback for environments without deployed Functions.
+    batch.set(
+      memberStateDocRef(matchId, otherUid),
+      { unreadCount: increment(1), updatedAt: serverTimestamp() },
+      { merge: true }
+    );
+  }
   await batch.commit();
 }

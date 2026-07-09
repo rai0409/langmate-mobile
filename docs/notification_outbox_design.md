@@ -24,6 +24,9 @@ notificationOutbox/{autoId}
 
 ## Lifecycle
 
+The client should not create notificationOutbox records directly; Functions
+create outbox records after trusted message validation.
+
 * `pending`: record is queued for a future worker.
 * `skipped`: worker intentionally skipped delivery.
 * `sent`: worker sent the notification through a configured provider.
