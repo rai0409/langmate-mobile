@@ -45,7 +45,8 @@ exchange apps. No third-party branding, UI, text, or assets are copied.
 * Discover: ranked partner recommendations with a transparent match score and
   "why matched" reasons; Skip / Connect / View Profile
 * Reciprocal matching logic (your target language ↔ their native language)
-* Connect flow: a match is created only when both users choose Connect
+* Connect flow: clients write their own swipe documents; Firebase Functions
+  creates a match only after trusted mutual-connect validation
 * Matches list with last message preview
 * In-app unread message counts with polished per-match badges and a Matches tab
   badge
@@ -185,7 +186,7 @@ npm run test:types                # TypeScript check (tsc --noEmit)
 | `profiles/{uid}`                      | auth uid (never auto-ID)      | Profile, including optional `photoURL`   |
 | `entitlements/{uid}`                  | auth uid                      | optional plan entitlement                |
 | `swipes/{fromUid_toUid}`              | `${fromUid}_${toUid}`         | skip/connect swipe                       |
-| `matches/{matchId}`                   | sorted pair `uidA_uidB`       | memberUids, lastMessage, lastSentAt      |
+| `matches/{matchId}`                   | sorted pair `uidA_uidB`       | memberUids, createdAt, updatedAt, lastMessage, lastSentAt |
 | `matches/{matchId}/messages/{autoId}` | auto-ID                       | fromUid, text, createdAt                 |
 | `matches/{matchId}/memberStates/{uid}` | auth uid                     | unreadCount, lastReadAt, muted           |
 | `blocks/{blockerUid_blockedUid}`      | `${blockerUid}_${blockedUid}` | block record                             |
@@ -243,6 +244,7 @@ The project includes strict, per-collection Firestore rules intended to protect:
 * owner-only profile writes
 * discoverable-or-owner profile reads
 * swipe `fromUid`/document-id integrity
+* direct client match creation denied
 * member-only match reads
 * restricted match updates
 * member-only messages
@@ -257,6 +259,12 @@ Client-side block filtering improves UX, but it is not a complete security
 boundary. Production still needs deployed rules and, for stronger guarantees,
 server-side enforcement for sensitive workflows.
 
+Match creation uses server authority in the commercial product path. Clients
+write only their own `swipes/{fromUid_toUid}` documents, then observe the
+deterministic `matches/{matchId}` document created by Firebase Functions after
+both users choose Connect. Direct client match creation is denied by Firestore
+rules.
+
 Unread counts use server authority in the commercial product path. Firestore
 rules deny client-side writes to another user's recipient unread state, while
 the client still writes messages and match previews. Firebase Functions/Admin
@@ -266,6 +274,12 @@ SDK handles recipient unread increments after
 `USE_SERVER_UNREAD_AUTHORITY=false` for environments without deployed
 Functions, but it is not the normal deployed path. Real push delivery is not
 implemented yet, and deployment is not confirmed.
+
+Local match creation Functions E2E:
+
+```bash
+npm run test:functions:match
+```
 
 ### Validate Firestore rules locally
 
@@ -610,6 +624,7 @@ Run:
 ```bash
 npm run test:types
 npm run test:rules
+npm run test:functions:match
 npm run moderation:fixture
 npm run account-deletion:fixture
 ```
@@ -644,7 +659,7 @@ Email/password auth: implemented
 Profile onboarding: implemented
 Profile photo upload: implemented
 Discover/recommendations: implemented
-Mutual match creation: implemented
+Mutual match creation: Firebase Functions path implemented locally, deployment not confirmed
 Matches list: implemented
 Realtime chat: implemented
 Chat send hardening: implemented

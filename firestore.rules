@@ -5,7 +5,7 @@
 // repositories in src/repositories/* (the source of truth):
 //   profiles/{uid}                       (setDoc merge; fields incl. uid, isDiscoverable)
 //   swipes/{fromUid}_{toUid}             (setDoc; fromUid, toUid, action, createdAt)
-//   matches/{sortedUidA}_{sortedUidB}    (setDoc merge; matchId, memberUids[2], createdAt; + lastMessage/lastSentAt on update)
+//   matches/{sortedUidA}_{sortedUidB}    (Function-created; matchId, memberUids[2], createdAt, updatedAt; + lastMessage/lastSentAt on update)
 //   matches/{matchId}/messages/{autoId}  (addDoc; fromUid, text, createdAt)
 //   matches/{matchId}/memberStates/{uid} (setDoc merge; unreadCount, lastReadAt, muted)
 //   entitlements/{uid}                   (read-only client entitlement; defaults to free if absent)
@@ -24,10 +24,8 @@
 //   - Prompt007 did NOT deploy these to the real project.
 //
 // PRODUCTION CAVEATS:
-//   - Mutual-connect match creation cannot be fully proven by rules alone
-//     (it depends on two swipe docs). Client create here only requires the
-//     creator to be one of exactly two members. For stronger guarantees,
-//     move match creation into a Cloud Function and set `create` to false.
+//   - Mutual-connect match creation is handled by Cloud Functions/Admin SDK
+//     after validating both swipe documents. Client match creation is denied.
 //   - Reports are create-only from clients; reading/acting on them must be
 //     done by admin/moderation tooling (Admin SDK / Cloud Functions, which
 //     bypass these rules). No client may read reports.
@@ -98,20 +96,15 @@ service cloud.firestore {
     // matches/{sortedUidA_sortedUidB}
     // ----------------------------------------------------------
     match /matches/{matchId} {
-      // The Connect flow get()s this doc to check whether a match already
-      // exists, which happens BEFORE the doc is created — so allow a get on a
-      // non-existent match (returns "not found", leaks nothing). For an
-      // existing match, only members may read it.
+      // The Connect flow may wait on this deterministic doc before it exists,
+      // so allow a get on a non-existent match (returns "not found", leaks
+      // nothing). For an existing match, only members may read it.
       allow get: if signedIn()
         && (resource == null || request.auth.uid in resource.data.memberUids);
       // The Matches screen lists via where(memberUids array-contains uid);
       // members only (the query constraint guarantees membership).
       allow list: if isMember(resource.data.memberUids);
-      // Create requires the creator to be one of exactly two members.
-      allow create: if signedIn()
-        && request.resource.data.memberUids is list
-        && request.resource.data.memberUids.size() == 2
-        && request.auth.uid in request.resource.data.memberUids;
+      allow create: if false;
       // Members may update only the chat-summary fields; membership is
       // immutable from the client (memberUids can never be in the diff).
       allow update: if isMember(resource.data.memberUids)

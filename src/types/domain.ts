@@ -72,6 +72,7 @@ export interface Match {
   matchId: string;
   memberUids: string[];
   createdAt?: unknown;
+  updatedAt?: unknown;
   lastMessage?: string;
   lastSentAt?: unknown;
 }

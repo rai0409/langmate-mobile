@@ -6,62 +6,89 @@ import {
   limit,
   onSnapshot,
   query,
-  serverTimestamp,
-  setDoc,
   where,
 } from "firebase/firestore";
 import { getConfiguredDb } from "./firestoreHelpers";
 import type { Match } from "../types/domain";
-import { getSwipe } from "./swipeRepository";
 
 const MATCHES = "matches";
+const SERVER_MATCH_WAIT_MS = 5000;
 
 export function buildMatchId(uidA: string, uidB: string): string {
   return [uidA, uidB].sort().join("_");
 }
 
+function matchFromSnapshot(
+  snapshot: Awaited<ReturnType<typeof getDoc>>
+): Match | null {
+  if (!snapshot.exists()) return null;
+  return { ...(snapshot.data() as Match), matchId: snapshot.id };
+}
+
+export async function getMatch(matchId: string): Promise<Match | null> {
+  const db = getConfiguredDb();
+  const snapshot = await getDoc(doc(db, MATCHES, matchId));
+  return matchFromSnapshot(snapshot);
+}
+
+export async function waitForServerCreatedMatch(
+  currentUid: string,
+  targetUid: string,
+  timeoutMs: number = SERVER_MATCH_WAIT_MS
+): Promise<Match | null> {
+  const db = getConfiguredDb();
+  const matchId = buildMatchId(currentUid, targetUid);
+  const matchRef = doc(db, MATCHES, matchId);
+
+  const existing = await getDoc(matchRef);
+  const existingMatch = matchFromSnapshot(existing);
+  if (existingMatch) return existingMatch;
+
+  return new Promise((resolve, reject) => {
+    let settled = false;
+    let unsubscribe: (() => void) | null = null;
+
+    const finish = (match: Match | null) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      unsubscribe?.();
+      resolve(match);
+    };
+
+    const timer = setTimeout(() => finish(null), timeoutMs);
+
+    unsubscribe = onSnapshot(
+      matchRef,
+      (snapshot) => {
+        const match = matchFromSnapshot(snapshot);
+        if (match) {
+          finish(match);
+        }
+      },
+      (error) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+        unsubscribe?.();
+        reject(error);
+      }
+    );
+  });
+}
+
 /**
- * Creates the match document only when both users have a "connect" swipe
- * toward each other. Returns the Match when one exists (created now or
- * earlier), otherwise null.
+ * Compatibility wrapper for Connect callers. Match creation is server-authority:
+ * this waits briefly for the trusted Function to create matches/{matchId}.
  */
 export async function createMatchIfMutualConnect(
   currentUid: string,
   targetUid: string
 ): Promise<Match | null> {
-  const db = getConfiguredDb();
-  const matchId = buildMatchId(currentUid, targetUid);
-
-  const existing = await getDoc(doc(db, MATCHES, matchId));
-  if (existing.exists()) {
-    return { ...(existing.data() as Match), matchId };
-  }
-
-  const [mySwipe, theirSwipe] = await Promise.all([
-    getSwipe(currentUid, targetUid),
-    getSwipe(targetUid, currentUid),
-  ]);
-  if (mySwipe?.action !== "connect" || theirSwipe?.action !== "connect") {
-    return null;
-  }
-
-  const match: Match = {
-    matchId,
-    memberUids: [currentUid, targetUid].sort(),
-    createdAt: serverTimestamp(),
-  };
-  await setDoc(doc(db, MATCHES, matchId), match, { merge: true });
-  return match;
+  return waitForServerCreatedMatch(currentUid, targetUid);
 }
 
 export const MATCHES_QUERY_LIMIT = 50;
-
-export async function getMatch(matchId: string): Promise<Match | null> {
-  const db = getConfiguredDb();
-  const snapshot = await getDoc(doc(db, MATCHES, matchId));
-  if (!snapshot.exists()) return null;
-  return { ...(snapshot.data() as Match), matchId };
-}
 
 export async function listMatchesForUser(
   uid: string,

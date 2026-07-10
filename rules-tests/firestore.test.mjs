@@ -12,6 +12,7 @@ import {
   getDoc,
   setDoc,
   updateDoc,
+  deleteDoc,
   addDoc,
   increment,
   collection,
@@ -143,10 +144,9 @@ await check("member can read match", "allow",
   getDoc(doc(aliceDb(), "matches", M1)));
 await check("non-member cannot read match", "deny",
   getDoc(doc(carolDb(), "matches", M1)));
-// Reproduces the Prompt010 Connect bug: createMatchIfMutualConnect does a
-// get() on matches/{matchId} to check existence BEFORE the match is created,
-// i.e. a get on a doc that does not exist. Must be allowed.
-await check("user can get a not-yet-created match (Connect existence check)", "allow",
+// The Connect flow may wait on matches/{matchId} before the Function creates
+// it. This get returns "not found" without exposing an existing match.
+await check("user can get an expected match before it exists", "allow",
   getDoc(doc(aliceDb(), "matches", `${ALICE}_${CAROL}`)));
 await check("member can update lastMessage/lastSentAt", "allow",
   updateDoc(doc(aliceDb(), "matches", M1), {
@@ -154,7 +154,7 @@ await check("member can update lastMessage/lastSentAt", "allow",
   }));
 await check("member cannot change memberUids", "deny",
   updateDoc(doc(aliceDb(), "matches", M1), { memberUids: [ALICE, CAROL] }));
-await check("member can create a two-member match including self", "allow",
+await check("authenticated user cannot create a match directly from the client", "deny",
   setDoc(doc(aliceDb(), "matches", `${ALICE}_${CAROL}`), {
     matchId: `${ALICE}_${CAROL}`, memberUids: [ALICE, CAROL], createdAt: new Date(),
   }));
@@ -162,6 +162,8 @@ await check("non-member cannot create a match", "deny",
   setDoc(doc(carolDb(), "matches", `${ALICE}_${BOB}_x`), {
     matchId: "x", memberUids: [ALICE, BOB], createdAt: new Date(),
   }));
+await check("client cannot delete a match", "deny",
+  deleteDoc(doc(aliceDb(), "matches", M1)));
 
 // =========================================================
 // messages (subcollection of matches/M1, members alice+bob)
