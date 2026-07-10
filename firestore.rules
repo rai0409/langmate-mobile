@@ -164,34 +164,17 @@ service cloud.firestore {
             && validMemberStateValues();
         }
 
-        function recipientUnreadWrite() {
-          return request.auth.uid != uid
-            && request.auth.uid in matchMembers()
-            && uid in matchMembers()
-            && request.resource.data.diff(resource.data).affectedKeys()
-              .hasOnly(['unreadCount', 'updatedAt'])
-            && validMemberStateKeys()
-            && validMemberStateValues();
-        }
-
         allow read: if signedIn()
           && request.auth.uid == uid
           && uid in matchMembers();
+        // Clients may only write their own member state. Recipient unread
+        // increments are server-authority work handled by Functions/Admin SDK.
         allow create: if signedIn()
           && uid in matchMembers()
-          && (
-            ownMemberStateWrite()
-            || (request.auth.uid != uid
-                && request.auth.uid in matchMembers()
-                && request.resource.data.keys().hasOnly([
-                  'unreadCount',
-                  'updatedAt'
-                ])
-                && validMemberStateValues())
-          );
+          && ownMemberStateWrite();
         allow update: if signedIn()
           && uid in matchMembers()
-          && (ownMemberStateWrite() || recipientUnreadWrite());
+          && ownMemberStateWrite();
         allow delete: if false;
       }
     }

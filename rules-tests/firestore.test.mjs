@@ -201,10 +201,22 @@ await check("non-member cannot read messages", "deny",
   batch.set(doc(db, "matches", M1), {
     lastMessage: "batched hello", lastSentAt: new Date(),
   }, { merge: true });
+  await check("member can batch message and match preview", "allow",
+    batch.commit());
+}
+{
+  const db = aliceDb();
+  const batch = writeBatch(db);
+  batch.set(doc(collection(db, "matches", M1, "messages")), {
+    fromUid: ALICE, text: "batched hello", createdAt: new Date(),
+  });
+  batch.set(doc(db, "matches", M1), {
+    lastMessage: "batched hello", lastSentAt: new Date(),
+  }, { merge: true });
   batch.set(doc(db, "matches", M1, "memberStates", BOB), {
     unreadCount: increment(1), updatedAt: new Date(),
   }, { merge: true });
-  await check("member can batch message, match preview, and recipient unread", "allow",
+  await check("member cannot batch message, match preview, and recipient unread", "deny",
     batch.commit());
 }
 
@@ -231,7 +243,11 @@ await check("member can mark own match read", "allow",
   setDoc(doc(bobDb(), "matches", M1, "memberStates", BOB), {
     unreadCount: 0, lastReadAt: new Date(), updatedAt: new Date(),
   }, { merge: true }));
-await check("sender match member can increment recipient unread foundation", "allow",
+await check("member can create own memberState", "allow",
+  setDoc(doc(aliceDb(), "matches", M1, "memberStates", ALICE), {
+    unreadCount: 0, muted: false, updatedAt: new Date(),
+  }, { merge: true }));
+await check("sender match member cannot write recipient unread", "deny",
   setDoc(doc(aliceDb(), "matches", M1, "memberStates", BOB), {
     unreadCount: 2, updatedAt: new Date(),
   }, { merge: true }));

@@ -28,7 +28,7 @@ exchange apps. No third-party branding, UI, text, or assets are copied.
   goal, interests, availability, country, bio, discoverability toggle
 * Commercial beta UI polish for onboarding, profile, matches, chat, and user
   detail screens
-* Free/premium plan foundation with optional `entitlements/{uid}` reads
+* Free/premium plan support with optional `entitlements/{uid}` reads
   (missing entitlements default to free; real payments are not implemented)
 * Plan badge and premium preview card for demo clarity; payments are still not
   implemented
@@ -257,13 +257,15 @@ Client-side block filtering improves UX, but it is not a complete security
 boundary. Production still needs deployed rules and, for stronger guarantees,
 server-side enforcement for sensitive workflows.
 
-Unread counts are being shifted toward server authority. The client writes
-messages and match previews; the Firebase Functions scaffold is intended to
-increment recipient unread counts after `matches/{matchId}/messages/{messageId}`
-creation and create a `notificationOutbox/{autoId}` handoff. A local client
-fallback remains behind `USE_SERVER_UNREAD_AUTHORITY=false` for environments
-without deployed Functions. Real push delivery is not implemented yet, and
-deployment is not confirmed.
+Unread counts use server authority in the commercial product path. Firestore
+rules deny client-side writes to another user's recipient unread state, while
+the client still writes messages and match previews. Firebase Functions/Admin
+SDK handles recipient unread increments after
+`matches/{matchId}/messages/{messageId}` creation and creates a
+`notificationOutbox/{autoId}` handoff. A local client fallback remains behind
+`USE_SERVER_UNREAD_AUTHORITY=false` for environments without deployed
+Functions, but it is not the normal deployed path. Real push delivery is not
+implemented yet, and deployment is not confirmed.
 
 ### Validate Firestore rules locally
 
