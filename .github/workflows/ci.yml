@@ -62,6 +62,12 @@ jobs:
       - name: Server match creation Functions E2E
         run: npm run test:functions:match
 
+      - name: Push provider unit tests
+        run: npm --prefix functions run test:push:unit
+
+      - name: Push Functions E2E (fake provider)
+        run: npm run test:functions:push
+
       - name: Export Expo Web
         run: npx expo export --platform web
 

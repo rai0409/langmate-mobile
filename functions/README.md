@@ -6,7 +6,7 @@ workflows that should not run in the Expo client.
 ## Current scope
 
 * Server-authority unread count scaffold for new chat messages
-* Notification outbox record creation with no real push delivery
+* Expo Push provider abstraction, outbox delivery, retry, and receipt checks
 * Account deletion workflow placeholders with no destructive deletion
 * Moderation workflow constants and notes with no admin dashboard
 
@@ -22,12 +22,21 @@ The workspace uses Firebase Admin SDK application default credentials at
 runtime. Do not commit service accounts, push provider credentials, API keys, or
 project-specific secrets.
 
-## Notification outbox
+## Notification outbox and Expo Push
 
-New message creation can enqueue `notificationOutbox/{autoId}` records with
-`deliveryProvider: "not_configured"`. These records are a durable handoff point
-for a future notification worker. They intentionally do not include full message
-text, and no push provider is called from this scaffold.
+New message creation enqueues a deterministic `notificationOutbox/{idempotencyKey}`
+record. `deliverNotificationOutbox` claims it transactionally with a five-minute
+lease, preventing duplicate sends during concurrent invocations. Retryable
+provider failures use exponential backoff and stop after five attempts;
+permanent failures are terminal. The scheduled worker retries due records and
+checks Expo tickets for delivery receipts. Message bodies are never copied to
+the outbox or notification body.
+
+Set `EXPO_ACCESS_TOKEN` through the reviewed Functions secret/environment
+configuration before production deployment. With no token, production fails
+closed and records `provider_not_configured`. `PUSH_PROVIDER=fake` is allowed
+only in emulator/test environments and is used by `npm run test:functions:push`.
+No external Expo API calls are made by CI.
 
 ## Deployment
 

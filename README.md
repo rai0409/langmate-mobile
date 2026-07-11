@@ -82,7 +82,7 @@ exchange apps. No third-party branding, UI, text, or assets are copied.
 ## Not implemented yet
 
 * Real AI translation/correction/reply suggestions (buttons show mock previews)
-* Push notifications
+* Production Expo credential validation on physical devices (the delivery pipeline is implemented, but this repository does not claim production credential verification)
 * Voice messages
 * Video/audio calls
 * Real payments / paid plan purchase flow
@@ -92,6 +92,43 @@ exchange apps. No third-party branding, UI, text, or assets are copied.
 * Admin moderation dashboard
 * Final legally reviewed privacy policy / terms / retention policy
 * App Store / Google Play release flow
+
+## Push notification delivery
+
+Message-created Functions write one deterministic `notificationOutbox` document
+per recipient event. The Expo provider claims that record with a Firestore
+lease, sends only a privacy-preserving title/body plus `matchId`, sender ID,
+message ID, and notification type, then stores Expo ticket IDs. A scheduled
+worker retries transient failures with exponential backoff (maximum five
+attempts) and checks tickets for Expo receipts. `DeviceNotRegistered` disables
+only the mapped device token.
+
+Clients register an Expo token only after Firebase authentication, on a real
+iOS/Android device. Web, simulators, denied permissions, absent project IDs,
+and token errors are safely skipped. Tokens are device-scoped at
+`users/{uid}/pushTokens/{installationId}`; the raw token is never a document
+ID. Logout best-effort disables the local device record.
+
+For local Functions emulator tests, `PUSH_PROVIDER=fake` selects a fake
+provider; it is intentionally rejected outside emulator/test environments.
+Production requires the Firebase Functions `EXPO_ACCESS_TOKEN` environment
+secret/value; a missing value records a terminal `provider_not_configured`
+failure rather than pretending delivery succeeded. Configure that value with
+your reviewed Firebase secret/environment process; do not commit it.
+
+Run the focused checks with:
+
+```bash
+npm --prefix functions run test:push:unit
+npm run test:functions:push
+```
+
+Expo Go may not provide the native notification behavior required by a release
+configuration. Test a development build and then an iOS/Android physical
+device: sign in, accept permission, send a message from a second account,
+confirm the receipt-backed delivery record, then sign out and confirm the
+local device token is disabled. Actual production Expo credentials and physical
+device delivery remain release-gate verification work.
 
 ## Current local development port
 

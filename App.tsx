@@ -7,6 +7,7 @@ import { Text } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { LoadingScreen } from "./src/components/LoadingScreen";
 import { AuthProvider, useAuth } from "./src/context/AuthContext";
+import { PushTokenRegistration } from "./src/context/PushTokenRegistration";
 import {
   isProfileComplete,
   ProfileProvider,
@@ -89,15 +90,16 @@ function AppFlow() {
     return <AuthScreen />;
   }
   if (profileLoading) {
-    return <LoadingScreen message="Loading your profile..." />;
+    return <><PushTokenRegistration /><LoadingScreen message="Loading your profile..." /></>;
   }
   if (!isProfileComplete(profile)) {
     // Saving the profile updates the listener, which moves the flow forward.
-    return <OnboardingScreen existingProfile={profile} />;
+    return <><PushTokenRegistration /><OnboardingScreen existingProfile={profile} /></>;
   }
 
   return (
     <UnreadProvider>
+      <PushTokenRegistration />
       <NavigationContainer>
         <Stack.Navigator>
           <Stack.Screen

@@ -13,6 +13,7 @@ import {
   type User,
 } from "firebase/auth";
 import { auth, hasFirebaseConfig } from "../firebase/config";
+import { invalidateCurrentExpoPushToken } from "../repositories/pushTokenRepository";
 
 interface AuthContextValue {
   currentUser: User | null;
@@ -70,6 +71,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       },
       signOut: async () => {
         if (!auth) throw notConfiguredError();
+        if (currentUser) await invalidateCurrentExpoPushToken(currentUser.uid);
         await firebaseSignOut(auth);
       },
     }),

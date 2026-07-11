@@ -479,6 +479,38 @@ await check("account deletion request status is client-fixed to requested", "den
   }));
 
 // =========================================================
+// users/{uid}/pushTokens/{deviceId}
+// =========================================================
+console.log("pushTokens:");
+await testEnv.clearFirestore();
+const pushToken = (uid, deviceId, extra = {}) => ({
+  uid, token: "ExponentPushToken[not-a-real-token]", platform: "ios", deviceId,
+  enabled: true, createdAt: new Date(), updatedAt: new Date(), lastSeenAt: new Date(),
+  invalidatedAt: null, invalidReason: null, ...extra,
+});
+await seed(async (db) => {
+  await setDoc(doc(db, "users", BOB, "pushTokens", "bob-device"), pushToken(BOB, "bob-device"));
+});
+await check("owner can register own push token", "allow",
+  setDoc(doc(aliceDb(), "users", ALICE, "pushTokens", "alice-device"), pushToken(ALICE, "alice-device")));
+await check("other user cannot register a token for owner", "deny",
+  setDoc(doc(aliceDb(), "users", BOB, "pushTokens", "other-device"), pushToken(BOB, "other-device")));
+await check("other user cannot update a token", "deny",
+  updateDoc(doc(aliceDb(), "users", BOB, "pushTokens", "bob-device"), { enabled: false }));
+await check("owner cannot swap token uid", "deny",
+  updateDoc(doc(bobDb(), "users", BOB, "pushTokens", "bob-device"), { uid: ALICE }));
+await check("owner can invalidate current token fields", "allow",
+  updateDoc(doc(bobDb(), "users", BOB, "pushTokens", "bob-device"), {
+    enabled: false, invalidatedAt: new Date(), invalidReason: "signed_out", updatedAt: new Date(),
+  }));
+await check("unauthenticated push token access is denied", "deny",
+  getDoc(doc(anonDb(), "users", BOB, "pushTokens", "bob-device")));
+await check("client cannot write server delivery fields", "deny",
+  updateDoc(doc(bobDb(), "users", BOB, "pushTokens", "bob-device"), { lastDeliveryAt: new Date() }));
+await check("owner cannot list tokens", "deny",
+  getDocs(collection(bobDb(), "users", BOB, "pushTokens")));
+
+// =========================================================
 await testEnv.cleanup();
 console.log(`\nRules tests: ${passed} passed, ${failed} failed`);
 if (failed > 0) {
