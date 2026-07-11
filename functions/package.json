@@ -10,7 +10,8 @@
     "build": "tsc",
     "serve": "npm run build && firebase emulators:start --only functions",
     "deploy": "firebase deploy --only functions",
-    "test:push:unit": "npm run build && node tests/push.unit.mjs"
+    "test:push:unit": "npm run build && node tests/push.unit.mjs",
+    "test:account-deletion:unit": "npm run build && node tests/accountDeletion.unit.mjs"
   },
   "dependencies": {
     "firebase-admin": "^13.0.0",

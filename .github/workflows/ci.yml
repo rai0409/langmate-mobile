@@ -65,6 +65,9 @@ jobs:
       - name: Push provider unit tests
         run: npm --prefix functions run test:push:unit
 
+      - name: Account deletion unit tests
+        run: npm run test:account-deletion:unit
+
       - name: Push Functions E2E (fake provider)
         run: npm run test:functions:push
 
