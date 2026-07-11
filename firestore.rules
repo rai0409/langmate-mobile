@@ -65,6 +65,36 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+    // Device-scoped Expo push tokens. Token values are private to the owner;
+    // delivery state remains server-only because Admin SDK bypasses rules.
+    match /users/{uid}/pushTokens/{deviceId} {
+      function validPushTokenFields() {
+        return request.resource.data.keys().hasOnly([
+          'uid', 'token', 'platform', 'deviceId', 'enabled', 'createdAt',
+          'updatedAt', 'lastSeenAt', 'invalidatedAt', 'invalidReason'
+        ])
+          && request.resource.data.uid == uid
+          && request.resource.data.deviceId == deviceId
+          && request.resource.data.token is string
+          && request.resource.data.token.size() > 0
+          && request.resource.data.platform in ['ios', 'android']
+          && request.resource.data.enabled is bool;
+      }
+      allow get: if signedIn() && request.auth.uid == uid;
+      allow list: if false;
+      allow create: if signedIn() && request.auth.uid == uid && validPushTokenFields();
+      allow update: if signedIn() && request.auth.uid == uid
+        && validPushTokenFields()
+        && request.resource.data.uid == resource.data.uid
+        && request.resource.data.deviceId == resource.data.deviceId
+        && request.resource.data.platform == resource.data.platform
+        && request.resource.data.createdAt == resource.data.createdAt
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'token', 'enabled', 'updatedAt', 'lastSeenAt', 'invalidatedAt', 'invalidReason'
+        ]);
+      allow delete: if false;
+    }
+
     // ----------------------------------------------------------
     // swipes/{fromUid}_{toUid}
     // ----------------------------------------------------------
