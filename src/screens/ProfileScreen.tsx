@@ -210,6 +210,8 @@ export function ProfileScreen() {
           disabled={signingOut}
         />
         <View style={styles.gap} />
+        <AppButton title="Delete Account" onPress={() => navigation.navigate("AccountDeletion")} variant="danger" disabled={signingOut} />
+        <View style={styles.gap} />
         <AppButton
           title={signingOut ? "Signing out..." : "Logout"}
           onPress={handleSignOut}

@@ -264,7 +264,7 @@ service cloud.firestore {
     match /accountDeletionRequests/{uid} {
       function validDeletionRequest() {
         return request.resource.data.keys().hasOnly([
-            'uid','requestId','status','requestedAt','scheduledFor','reasonCategory',
+            'uid','requestId','status','reasonCategory','requestedAt',
             'retentionPolicyVersion','requestedBy','updatedAt'
           ])
           && request.resource.data.uid == uid
@@ -281,7 +281,7 @@ service cloud.firestore {
         && request.auth.uid == uid
         && validDeletionRequest();
       allow update: if signedIn() && request.auth.uid == uid
-        && resource.data.status in ['requested','scheduled']
+        && resource.data.status == 'scheduled'
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status','cancelledAt','updatedAt'])
         && request.resource.data.status == 'cancelled';
       allow delete: if false;

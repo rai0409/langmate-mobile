@@ -426,24 +426,12 @@ console.log("accountDeletionRequests:");
 await testEnv.clearFirestore();
 await seed(async (db) => {
   await setDoc(doc(db, "accountDeletionRequests", BOB), {
-    uid: BOB,
-    status: "requested",
-    reason: "seeded request",
-    contactEmail: "bob@example.test",
-    requestedAt: new Date(),
-    updatedAt: new Date(),
-    source: "rules-test-seed",
+    uid: BOB, requestId: BOB, requestedBy: BOB, status: "scheduled", reasonCategory: "user_requested", retentionPolicyVersion: "draft-1", requestedAt: new Date(), updatedAt: new Date(), scheduledFor: new Date(),
   });
 });
 await check("user can create own account deletion request", "allow",
   setDoc(doc(aliceDb(), "accountDeletionRequests", ALICE), {
-    uid: ALICE,
-    status: "requested",
-    reason: "please delete my account",
-    contactEmail: "alice@example.test",
-    requestedAt: new Date(),
-    updatedAt: new Date(),
-    source: "web",
+    uid: ALICE, requestId: ALICE, requestedBy: ALICE, status: "requested", reasonCategory: "user_requested", retentionPolicyVersion: "draft-1", requestedAt: new Date(), updatedAt: new Date(),
   }));
 await check("user can read own account deletion request", "allow",
   getDoc(doc(bobDb(), "accountDeletionRequests", BOB)));
@@ -453,30 +441,18 @@ await check("user cannot list all account deletion requests", "deny",
   getDocs(collection(aliceDb(), "accountDeletionRequests")));
 await check("user cannot create account deletion request for another uid", "deny",
   setDoc(doc(aliceDb(), "accountDeletionRequests", BOB), {
-    uid: BOB,
-    status: "requested",
-    reason: "spoof",
-    requestedAt: new Date(),
-    updatedAt: new Date(),
-    source: "web",
+    uid: BOB, requestId: BOB, requestedBy: BOB, status: "requested", reasonCategory: "user_requested", retentionPolicyVersion: "draft-1", requestedAt: new Date(), updatedAt: new Date(),
   }));
 await check("account deletion request uid must match doc id", "deny",
   setDoc(doc(aliceDb(), "accountDeletionRequests", ALICE), {
-    uid: BOB,
-    status: "requested",
-    reason: "mismatch",
-    requestedAt: new Date(),
-    updatedAt: new Date(),
-    source: "web",
+    uid: BOB, requestId: ALICE, requestedBy: BOB, status: "requested", reasonCategory: "user_requested", retentionPolicyVersion: "draft-1", requestedAt: new Date(), updatedAt: new Date(),
   }));
 await check("account deletion request status is client-fixed to requested", "deny",
   setDoc(doc(aliceDb(), "accountDeletionRequests", ALICE), {
-    uid: ALICE,
-    status: "completed",
-    requestedAt: new Date(),
-    updatedAt: new Date(),
-    source: "web",
+    uid: ALICE, requestId: ALICE, requestedBy: ALICE, status: "completed", reasonCategory: "user_requested", retentionPolicyVersion: "draft-1", requestedAt: new Date(), updatedAt: new Date(),
   }));
+await check("owner can cancel scheduled deletion request", "allow", updateDoc(doc(bobDb(), "accountDeletionRequests", BOB), { status: "cancelled", cancelledAt: new Date(), updatedAt: new Date() }));
+await check("audit collection is client denied", "deny", getDoc(doc(bobDb(), "accountDeletionAudit", "audit")));
 
 // =========================================================
 // users/{uid}/pushTokens/{deviceId}
