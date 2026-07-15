@@ -7,4 +7,5 @@ export { createMatchForMutualConnect } from "./matchCreation";
 export * from "./notificationOutbox";
 export { deliverNotificationOutbox, retryNotificationOutbox } from "./pushProcessor";
 export * from "./accountDeletion";
+export { processAccountDeletionRequests, scheduleAccountDeletionRequest } from "./accountDeletionProcessor";
 export * from "./moderation";

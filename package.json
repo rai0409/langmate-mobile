@@ -38,6 +38,8 @@
     "test:functions:unread": "npm --prefix functions run build && firebase emulators:exec --only firestore,functions --project demo-langmate \"node scripts/functions_unread_e2e.mjs\"",
     "test:functions:match": "npm --prefix functions run build && firebase emulators:exec --only firestore,functions --project demo-langmate \"node scripts/functions_match_creation_e2e.mjs\"",
     "test:functions:push": "npm --prefix functions run build && PUSH_PROVIDER=fake firebase emulators:exec --only firestore,functions --project demo-langmate \"node scripts/functions_push_e2e.mjs\"",
+    "test:account-deletion:unit": "npm --prefix functions run test:account-deletion:unit",
+    "test:functions:account-deletion": "npm --prefix functions run build && firebase emulators:exec --only firestore,functions --project demo-langmate \"node scripts/functions_account_deletion_e2e.mjs\"",
     "moderation:fixture": "node scripts/moderation_review_fixture.mjs",
     "account-deletion:fixture": "node scripts/account_deletion_request_fixture.mjs"
   },

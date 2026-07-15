@@ -20,7 +20,11 @@ const waitFor = async (ref, predicate) => {
 };
 const prepareManual = async (ref, value) => {
   await ref.set({ ...value, status: "processing", leaseExpiresAt: new Date(Date.now() + 60_000) });
-  await ref.update({ status: "pending", leaseExpiresAt: new Date(Date.now() - 1), nextAttemptAt: new Date(Date.now() - 1) });
+  // The create trigger sees an active processing lease and exits. Only after
+  // that invocation has had a chance to read do we expire the lease for the
+  // explicit in-process provider injection below; we never expose pending.
+  await new Promise((resolve) => setTimeout(resolve, 300));
+  await ref.update({ leaseExpiresAt: new Date(Date.now() - 1), nextAttemptAt: new Date(Date.now() - 1) });
 };
 await db.doc(`users/${recipient}/pushTokens/device-a`).set({ uid: recipient, token: "ExponentPushToken[e2e-a]", platform: "ios", deviceId: "device-a", enabled: true, createdAt: new Date(), updatedAt: new Date(), lastSeenAt: new Date(), invalidatedAt: null, invalidReason: null });
 await db.doc(`users/${recipient}/pushTokens/device-b`).set({ uid: recipient, token: "ExponentPushToken[e2e-b]", platform: "android", deviceId: "device-b", enabled: false, createdAt: new Date(), updatedAt: new Date(), lastSeenAt: new Date(), invalidatedAt: null, invalidReason: null });

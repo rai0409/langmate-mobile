@@ -21,6 +21,7 @@ import { DiscoverScreen } from "./src/screens/DiscoverScreen";
 import { MatchesScreen } from "./src/screens/MatchesScreen";
 import { OnboardingScreen } from "./src/screens/OnboardingScreen";
 import { ProfileScreen } from "./src/screens/ProfileScreen";
+import { AccountDeletionScreen } from "./src/screens/AccountDeletionScreen";
 import { SetupRequiredScreen } from "./src/screens/SetupRequiredScreen";
 import { UserDetailScreen } from "./src/screens/UserDetailScreen";
 import { colors } from "./src/theme/theme";
@@ -126,6 +127,7 @@ function AppFlow() {
             component={EditProfileScreen}
             options={{ title: "Edit Profile" }}
           />
+          <Stack.Screen name="AccountDeletion" component={AccountDeletionScreen} options={{ title: "Delete account" }} />
         </Stack.Navigator>
       </NavigationContainer>
     </UnreadProvider>

@@ -12,6 +12,7 @@ export type RootStackParamList = {
     partnerName?: string;
   };
   EditProfile: undefined;
+  AccountDeletion: undefined;
 };
 
 export type MainTabsParamList = {
