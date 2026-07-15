@@ -68,6 +68,9 @@ jobs:
       - name: Account deletion unit tests
         run: npm run test:account-deletion:unit
 
+      - name: Account deletion Functions E2E
+        run: npm run test:functions:account-deletion
+
       - name: Push Functions E2E (fake provider)
         run: npm run test:functions:push
 
