@@ -1,7 +1,7 @@
-import React from "react";
-import { StyleSheet, Text, View } from "react-native";
-import { colors, spacing, typography } from "../theme/theme";
-import { AppButton } from "./AppButton";
+import React from 'react';
+import { StyleSheet, Text, View } from 'react-native';
+import { colors, spacing, typography } from '../theme/theme';
+import { AppButton } from './AppButton';
 
 interface EmptyStateProps {
   title: string;
@@ -10,12 +10,7 @@ interface EmptyStateProps {
   onAction?: () => void;
 }
 
-export function EmptyState({
-  title,
-  message,
-  actionTitle,
-  onAction,
-}: EmptyStateProps) {
+export function EmptyState({ title, message, actionTitle, onAction }: EmptyStateProps) {
   return (
     <View style={styles.container}>
       <Text style={styles.title}>{title}</Text>
@@ -32,23 +27,23 @@ export function EmptyState({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
+    alignItems: 'center',
+    justifyContent: 'center',
     padding: spacing.xl,
     backgroundColor: colors.background,
   },
   title: {
     ...typography.subtitle,
     marginBottom: spacing.sm,
-    textAlign: "center",
+    textAlign: 'center',
   },
   message: {
     ...typography.body,
     color: colors.textMuted,
-    textAlign: "center",
+    textAlign: 'center',
   },
   action: {
     marginTop: spacing.lg,
-    alignSelf: "stretch",
+    alignSelf: 'stretch',
   },
 });

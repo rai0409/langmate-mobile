@@ -1,25 +1,21 @@
-import { createRequire } from "node:module";
+import { createRequire } from 'node:module';
 
-const projectId = "demo-langmate";
-const matchId = "functions-unread-e2e-match";
-const messageId = "functions-unread-e2e-message";
-const senderUid = "functions-unread-e2e-sender";
-const recipientUid = "functions-unread-e2e-recipient";
+const projectId = 'demo-langmate';
+const matchId = 'functions-unread-e2e-match';
+const messageId = 'functions-unread-e2e-message';
+const senderUid = 'functions-unread-e2e-sender';
+const recipientUid = 'functions-unread-e2e-recipient';
 
 if (!process.env.FIRESTORE_EMULATOR_HOST) {
   console.error(
-    "FAIL functions unread E2E: FIRESTORE_EMULATOR_HOST is not set. Run through firebase emulators:exec."
+    'FAIL functions unread E2E: FIRESTORE_EMULATOR_HOST is not set. Run through firebase emulators:exec.',
   );
   process.exit(1);
 }
 
-const requireFromFunctions = createRequire(
-  new URL("../functions/package.json", import.meta.url)
-);
-const { initializeApp } = requireFromFunctions("firebase-admin/app");
-const { FieldValue, getFirestore } = requireFromFunctions(
-  "firebase-admin/firestore"
-);
+const requireFromFunctions = createRequire(new URL('../functions/package.json', import.meta.url));
+const { initializeApp } = requireFromFunctions('firebase-admin/app');
+const { FieldValue, getFirestore } = requireFromFunctions('firebase-admin/firestore');
 
 initializeApp({ projectId });
 
@@ -44,33 +40,31 @@ async function clearTestDocuments() {
   await db.doc(`matches/${matchId}`).delete();
 
   const outboxSnapshot = await db
-    .collection("notificationOutbox")
-    .where("matchId", "==", matchId)
+    .collection('notificationOutbox')
+    .where('matchId', '==', matchId)
     .get();
   await deleteQuerySnapshot(outboxSnapshot);
 }
 
 async function readVerificationState() {
-  const memberStateSnapshot = await db
-    .doc(`matches/${matchId}/memberStates/${recipientUid}`)
-    .get();
+  const memberStateSnapshot = await db.doc(`matches/${matchId}/memberStates/${recipientUid}`).get();
   const unreadCount = memberStateSnapshot.data()?.unreadCount ?? 0;
 
   const outboxSnapshot = await db
-    .collection("notificationOutbox")
-    .where("matchId", "==", matchId)
+    .collection('notificationOutbox')
+    .where('matchId', '==', matchId)
     .get();
   const matchingOutboxDocs = outboxSnapshot.docs
     .map((doc) => ({ id: doc.id, ...doc.data() }))
     .filter(
       (doc) =>
-        doc.type === "message_received" &&
+        doc.type === 'message_received' &&
         doc.matchId === matchId &&
         doc.messageId === messageId &&
         doc.senderUid === senderUid &&
         doc.recipientUid === recipientUid &&
-        doc.status === "pending" &&
-        doc.deliveryProvider === "not_configured"
+        doc.status === 'pending' &&
+        doc.deliveryProvider === 'not_configured',
     );
 
   return {
@@ -104,23 +98,23 @@ async function pollForVerification() {
 }
 
 try {
-  console.log("functions unread E2E: clearing prior test documents");
+  console.log('functions unread E2E: clearing prior test documents');
   await clearTestDocuments();
 
-  console.log("functions unread E2E: seeding match");
+  console.log('functions unread E2E: seeding match');
   await db.doc(`matches/${matchId}`).set({
     memberUids: [senderUid, recipientUid],
     createdAt: FieldValue.serverTimestamp(),
   });
 
-  console.log("functions unread E2E: creating message");
+  console.log('functions unread E2E: creating message');
   await db.doc(`matches/${matchId}/messages/${messageId}`).set({
     fromUid: senderUid,
-    text: "hello from functions unread E2E",
+    text: 'hello from functions unread E2E',
     createdAt: FieldValue.serverTimestamp(),
   });
 
-  console.log("functions unread E2E: waiting for trigger effects");
+  console.log('functions unread E2E: waiting for trigger effects');
   const state = await pollForVerification();
 
   if (state.unreadCount < 1) {
@@ -128,15 +122,13 @@ try {
   }
   if (state.matchingOutboxCount !== 1 || state.totalOutboxForMatch !== 1) {
     throw new Error(
-      `expected one matching notificationOutbox record, got ${state.matchingOutboxCount} matching and ${state.totalOutboxForMatch} total for match`
+      `expected one matching notificationOutbox record, got ${state.matchingOutboxCount} matching and ${state.totalOutboxForMatch} total for match`,
     );
   }
 
-  console.log("PASS functions unread E2E: unread increment verified");
-  console.log("PASS functions unread E2E: notificationOutbox verified");
+  console.log('PASS functions unread E2E: unread increment verified');
+  console.log('PASS functions unread E2E: notificationOutbox verified');
 } catch (error) {
-  console.error(
-    `FAIL functions unread E2E: ${error instanceof Error ? error.message : error}`
-  );
+  console.error(`FAIL functions unread E2E: ${error instanceof Error ? error.message : error}`);
   process.exit(1);
 }

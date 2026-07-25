@@ -7,20 +7,18 @@ import {
   onSnapshot,
   query,
   where,
-} from "firebase/firestore";
-import { getConfiguredDb } from "./firestoreHelpers";
-import type { Match } from "../types/domain";
+} from 'firebase/firestore';
+import { getConfiguredDb } from './firestoreHelpers';
+import type { Match } from '../types/domain';
 
-const MATCHES = "matches";
+const MATCHES = 'matches';
 const SERVER_MATCH_WAIT_MS = 5000;
 
 export function buildMatchId(uidA: string, uidB: string): string {
-  return [uidA, uidB].sort().join("_");
+  return [uidA, uidB].sort().join('_');
 }
 
-function matchFromSnapshot(
-  snapshot: Awaited<ReturnType<typeof getDoc>>
-): Match | null {
+function matchFromSnapshot(snapshot: Awaited<ReturnType<typeof getDoc>>): Match | null {
   if (!snapshot.exists()) return null;
   return { ...(snapshot.data() as Match), matchId: snapshot.id };
 }
@@ -34,7 +32,7 @@ export async function getMatch(matchId: string): Promise<Match | null> {
 export async function waitForServerCreatedMatch(
   currentUid: string,
   targetUid: string,
-  timeoutMs: number = SERVER_MATCH_WAIT_MS
+  timeoutMs: number = SERVER_MATCH_WAIT_MS,
 ): Promise<Match | null> {
   const db = getConfiguredDb();
   const matchId = buildMatchId(currentUid, targetUid);
@@ -72,7 +70,7 @@ export async function waitForServerCreatedMatch(
         clearTimeout(timer);
         unsubscribe?.();
         reject(error);
-      }
+      },
     );
   });
 }
@@ -83,7 +81,7 @@ export async function waitForServerCreatedMatch(
  */
 export async function createMatchIfMutualConnect(
   currentUid: string,
-  targetUid: string
+  targetUid: string,
 ): Promise<Match | null> {
   return waitForServerCreatedMatch(currentUid, targetUid);
 }
@@ -92,15 +90,11 @@ export const MATCHES_QUERY_LIMIT = 50;
 
 export async function listMatchesForUser(
   uid: string,
-  limitCount: number = MATCHES_QUERY_LIMIT
+  limitCount: number = MATCHES_QUERY_LIMIT,
 ): Promise<Match[]> {
   const db = getConfiguredDb();
   const snapshot = await getDocs(
-    query(
-      collection(db, MATCHES),
-      where("memberUids", "array-contains", uid),
-      limit(limitCount)
-    )
+    query(collection(db, MATCHES), where('memberUids', 'array-contains', uid), limit(limitCount)),
   );
   return snapshot.docs.map((d) => ({ ...(d.data() as Match), matchId: d.id }));
 }
@@ -109,22 +103,16 @@ export function listenMatchesForUser(
   uid: string,
   callback: (matches: Match[]) => void,
   onError?: (error: Error) => void,
-  limitCount: number = MATCHES_QUERY_LIMIT
+  limitCount: number = MATCHES_QUERY_LIMIT,
 ): () => void {
   const db = getConfiguredDb();
   return onSnapshot(
-    query(
-      collection(db, MATCHES),
-      where("memberUids", "array-contains", uid),
-      limit(limitCount)
-    ),
+    query(collection(db, MATCHES), where('memberUids', 'array-contains', uid), limit(limitCount)),
     (snapshot) => {
-      callback(
-        snapshot.docs.map((d) => ({ ...(d.data() as Match), matchId: d.id }))
-      );
+      callback(snapshot.docs.map((d) => ({ ...(d.data() as Match), matchId: d.id })));
     },
     (error) => {
       onError?.(error);
-    }
+    },
   );
 }

@@ -1,6 +1,6 @@
-import { useEffect } from "react";
-import { useAuth } from "./AuthContext";
-import { registerExpoPushToken } from "../repositories/pushTokenRepository";
+import { useEffect } from 'react';
+import { useAuth } from './AuthContext';
+import { registerExpoPushToken } from '../repositories/pushTokenRepository';
 
 export function PushTokenRegistration(): null {
   const { currentUser } = useAuth();

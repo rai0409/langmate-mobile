@@ -1,42 +1,20 @@
 export type LanguageCode =
-  | "ja"
-  | "en"
-  | "ko"
-  | "zh"
-  | "es"
-  | "fr"
-  | "de"
-  | "it"
-  | "pt"
-  | "th"
-  | "vi"
-  | "id"
-  | "other";
+  'ja' | 'en' | 'ko' | 'zh' | 'es' | 'fr' | 'de' | 'it' | 'pt' | 'th' | 'vi' | 'id' | 'other';
 
-export type Plan = "free" | "premium";
+export type Plan = 'free' | 'premium';
 
-export type UserLevel =
-  | "beginner"
-  | "elementary"
-  | "intermediate"
-  | "advanced"
-  | "native";
+export type UserLevel = 'beginner' | 'elementary' | 'intermediate' | 'advanced' | 'native';
 
 export type LearningGoal =
-  | "daily_conversation"
-  | "business"
-  | "exam"
-  | "travel"
-  | "culture"
-  | "friendship";
+  'daily_conversation' | 'business' | 'exam' | 'travel' | 'culture' | 'friendship';
 
 export type AvailabilitySlot =
-  | "weekday_morning"
-  | "weekday_daytime"
-  | "weekday_night"
-  | "weekend_morning"
-  | "weekend_daytime"
-  | "weekend_night";
+  | 'weekday_morning'
+  | 'weekday_daytime'
+  | 'weekday_night'
+  | 'weekend_morning'
+  | 'weekend_daytime'
+  | 'weekend_night';
 
 export interface Profile {
   uid: string;
@@ -59,7 +37,7 @@ export interface Profile {
   updatedAt?: unknown;
 }
 
-export type SwipeAction = "skip" | "connect";
+export type SwipeAction = 'skip' | 'connect';
 
 export interface Swipe {
   fromUid: string;
@@ -104,11 +82,7 @@ export interface Block {
 }
 
 export type ReportReason =
-  | "spam"
-  | "harassment"
-  | "inappropriate_content"
-  | "fake_profile"
-  | "other";
+  'spam' | 'harassment' | 'inappropriate_content' | 'fake_profile' | 'other';
 
 export interface Report {
   reporterUid: string;

@@ -1,40 +1,36 @@
-import type { NativeStackScreenProps } from "@react-navigation/native-stack";
-import React, { useState } from "react";
-import { ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
-import { AppButton } from "../components/AppButton";
-import { Chip } from "../components/Chip";
-import { MatchReasonList } from "../components/MatchReasonList";
-import { ProfileAvatar } from "../components/ProfileAvatar";
-import {
-  availabilityLabel,
-  learningGoalLabel,
-  levelLabel,
-} from "../constants/options";
-import { useAuth } from "../context/AuthContext";
-import { hasFirebaseConfig } from "../firebase/config";
-import { createMatchIfMutualConnect } from "../repositories/matchRepository";
-import { blockUser, reportUser } from "../repositories/safetyRepository";
-import { createSwipe } from "../repositories/swipeRepository";
-import { colors, radius, spacing, typography } from "../theme/theme";
-import type { ReportReason } from "../types/domain";
-import type { RootStackParamList } from "../types/navigation";
-import { getErrorMessage } from "../utils/errorMessage";
-import { logDevError } from "../utils/logging";
-import { notify } from "../utils/notify";
+import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import React, { useState } from 'react';
+import { ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { AppButton } from '../components/AppButton';
+import { Chip } from '../components/Chip';
+import { MatchReasonList } from '../components/MatchReasonList';
+import { ProfileAvatar } from '../components/ProfileAvatar';
+import { availabilityLabel, learningGoalLabel, levelLabel } from '../constants/options';
+import { useAuth } from '../context/AuthContext';
+import { hasFirebaseConfig } from '../firebase/config';
+import { createMatchIfMutualConnect } from '../repositories/matchRepository';
+import { blockUser, reportUser } from '../repositories/safetyRepository';
+import { createSwipe } from '../repositories/swipeRepository';
+import { colors, radius, spacing, typography } from '../theme/theme';
+import type { ReportReason } from '../types/domain';
+import type { RootStackParamList } from '../types/navigation';
+import { getErrorMessage } from '../utils/errorMessage';
+import { logDevError } from '../utils/logging';
+import { notify } from '../utils/notify';
 import {
   formatLanguageList,
   nativeLanguagesForProfile,
   targetLanguagesForProfile,
-} from "../utils/profileLanguages";
+} from '../utils/profileLanguages';
 
-type Props = NativeStackScreenProps<RootStackParamList, "UserDetail">;
+type Props = NativeStackScreenProps<RootStackParamList, 'UserDetail'>;
 
 const REPORT_REASONS: { value: ReportReason; label: string }[] = [
-  { value: "spam", label: "Spam" },
-  { value: "harassment", label: "Harassment" },
-  { value: "inappropriate_content", label: "Inappropriate content" },
-  { value: "fake_profile", label: "Fake profile" },
-  { value: "other", label: "Other" },
+  { value: 'spam', label: 'Spam' },
+  { value: 'harassment', label: 'Harassment' },
+  { value: 'inappropriate_content', label: 'Inappropriate content' },
+  { value: 'fake_profile', label: 'Fake profile' },
+  { value: 'other', label: 'Other' },
 ];
 
 export function UserDetailScreen({ route }: Props) {
@@ -42,8 +38,8 @@ export function UserDetailScreen({ route }: Props) {
   const { currentUser } = useAuth();
   const [busy, setBusy] = useState(false);
   const [showReportForm, setShowReportForm] = useState(false);
-  const [reportReason, setReportReason] = useState<ReportReason>("spam");
-  const [reportDetails, setReportDetails] = useState("");
+  const [reportReason, setReportReason] = useState<ReportReason>('spam');
+  const [reportDetails, setReportDetails] = useState('');
   const [reportSent, setReportSent] = useState(false);
   const [showBlockConfirm, setShowBlockConfirm] = useState(false);
   const [isBlocked, setIsBlocked] = useState(false);
@@ -53,13 +49,13 @@ export function UserDetailScreen({ route }: Props) {
   const guardWrites = (): boolean => {
     if (isPreview || !hasFirebaseConfig() || !currentUser) {
       notify(
-        "Preview only — nothing was saved",
-        "This is a sample profile shown in preview mode. Connect, Report, and Block start working once Firebase is set up and real users join."
+        'Preview only — nothing was saved',
+        'This is a sample profile shown in preview mode. Connect, Report, and Block start working once Firebase is set up and real users join.',
       );
       return false;
     }
     if (profile.uid === currentUser.uid) {
-      notify("Action unavailable", "You cannot use this action on your own profile.");
+      notify('Action unavailable', 'You cannot use this action on your own profile.');
       return false;
     }
     return true;
@@ -69,25 +65,22 @@ export function UserDetailScreen({ route }: Props) {
     if (!guardWrites()) return;
     setBusy(true);
     try {
-      await createSwipe(currentUser!.uid, profile.uid, "connect");
-      const match = await createMatchIfMutualConnect(
-        currentUser!.uid,
-        profile.uid
-      );
+      await createSwipe(currentUser!.uid, profile.uid, 'connect');
+      const match = await createMatchIfMutualConnect(currentUser!.uid, profile.uid);
       if (match) {
         notify(
           "It's a match!",
-          `You and ${profile.displayName} both want to connect. Say hello in Matches.`
+          `You and ${profile.displayName} both want to connect. Say hello in Matches.`,
         );
       } else {
         notify(
-          "Connect request sent",
-          `If ${profile.displayName} also connects with you, a match opens.`
+          'Connect request sent',
+          `If ${profile.displayName} also connects with you, a match opens.`,
         );
       }
     } catch (e) {
-      logDevError("UserDetailScreen.connect", e);
-      notify("Could not connect", getErrorMessage(e));
+      logDevError('UserDetailScreen.connect', e);
+      notify('Could not connect', getErrorMessage(e));
     } finally {
       setBusy(false);
     }
@@ -97,19 +90,14 @@ export function UserDetailScreen({ route }: Props) {
     if (!guardWrites()) return;
     setBusy(true);
     try {
-      await reportUser(
-        currentUser!.uid,
-        profile.uid,
-        reportReason,
-        reportDetails
-      );
+      await reportUser(currentUser!.uid, profile.uid, reportReason, reportDetails);
       setReportSent(true);
       setShowReportForm(false);
-      setReportDetails("");
-      notify("Report sent", "Thank you. Our team will review this profile.");
+      setReportDetails('');
+      notify('Report sent', 'Thank you. Our team will review this profile.');
     } catch (e) {
-      logDevError("UserDetailScreen.report", e);
-      notify("Could not send report", getErrorMessage(e));
+      logDevError('UserDetailScreen.report', e);
+      notify('Could not send report', getErrorMessage(e));
     } finally {
       setBusy(false);
     }
@@ -123,12 +111,12 @@ export function UserDetailScreen({ route }: Props) {
       setIsBlocked(true);
       setShowBlockConfirm(false);
       notify(
-        "User blocked",
-        `${profile.displayName} has been blocked and will be hidden from your Discover and Matches.`
+        'User blocked',
+        `${profile.displayName} has been blocked and will be hidden from your Discover and Matches.`,
       );
     } catch (e) {
-      logDevError("UserDetailScreen.block", e);
-      notify("Could not block user", getErrorMessage(e));
+      logDevError('UserDetailScreen.block', e);
+      notify('Could not block user', getErrorMessage(e));
     } finally {
       setBusy(false);
     }
@@ -136,18 +124,14 @@ export function UserDetailScreen({ route }: Props) {
 
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
-      {isPreview ? (
-        <Text style={styles.previewNote}>Preview data — sample profile</Text>
-      ) : null}
+      {isPreview ? <Text style={styles.previewNote}>Preview data — sample profile</Text> : null}
 
       <View style={styles.profileCard}>
         <View style={styles.header}>
           <ProfileAvatar profile={profile} size={92} />
           <View style={styles.headerText}>
             <Text style={styles.name}>{profile.displayName}</Text>
-            {profile.country ? (
-              <Text style={styles.country}>{profile.country}</Text>
-            ) : null}
+            {profile.country ? <Text style={styles.country}>{profile.country}</Text> : null}
             <Text style={styles.languageSummary}>
               Native: {formatLanguageList(nativeLanguagesForProfile(profile))}
             </Text>
@@ -179,9 +163,7 @@ export function UserDetailScreen({ route }: Props) {
           Learning: {formatLanguageList(targetLanguagesForProfile(profile))} (
           {levelLabel(profile.level)})
         </Text>
-        <Text style={typography.body}>
-          Goal: {learningGoalLabel(profile.learningGoal)}
-        </Text>
+        <Text style={typography.body}>Goal: {learningGoalLabel(profile.learningGoal)}</Text>
       </Section>
 
       <Section title="About">
@@ -213,8 +195,8 @@ export function UserDetailScreen({ route }: Props) {
           <View style={styles.blockedState}>
             <Text style={styles.blockedTitle}>User blocked</Text>
             <Text style={styles.blockedText}>
-              This user is blocked and will be hidden or restricted where block
-              filtering is available.
+              This user is blocked and will be hidden or restricted where block filtering is
+              available.
             </Text>
           </View>
         ) : null}
@@ -231,8 +213,7 @@ export function UserDetailScreen({ route }: Props) {
           <View style={styles.confirmCard}>
             <Text style={styles.confirmTitle}>Report this profile?</Text>
             <Text style={styles.confirmText}>
-              Choose a reason before sending a report. Nothing is saved if you
-              cancel.
+              Choose a reason before sending a report. Nothing is saved if you cancel.
             </Text>
             <View style={styles.reasonList}>
               {REPORT_REASONS.map((reason) => (
@@ -240,9 +221,7 @@ export function UserDetailScreen({ route }: Props) {
                   key={reason.value}
                   title={reason.label}
                   onPress={() => setReportReason(reason.value)}
-                  variant={
-                    reportReason === reason.value ? "primary" : "secondary"
-                  }
+                  variant={reportReason === reason.value ? 'primary' : 'secondary'}
                   disabled={busy}
                 />
               ))}
@@ -278,8 +257,8 @@ export function UserDetailScreen({ route }: Props) {
           <View style={styles.confirmCard}>
             <Text style={styles.confirmTitle}>Block this user?</Text>
             <Text style={styles.confirmText}>
-              Blocking {profile.displayName} will hide or restrict them in
-              areas that support block filtering, including chat.
+              Blocking {profile.displayName} will hide or restrict them in areas that support block
+              filtering, including chat.
             </Text>
             <View style={styles.confirmActions}>
               <AppButton
@@ -299,11 +278,7 @@ export function UserDetailScreen({ route }: Props) {
           </View>
         ) : null}
 
-        <AppButton
-          title="Connect"
-          onPress={handleConnect}
-          disabled={busy || isBlocked}
-        />
+        <AppButton title="Connect" onPress={handleConnect} disabled={busy || isBlocked} />
         <View style={styles.gap} />
         <AppButton
           title="Report"
@@ -323,13 +298,7 @@ export function UserDetailScreen({ route }: Props) {
   );
 }
 
-function Section({
-  title,
-  children,
-}: {
-  title: string;
-  children: React.ReactNode;
-}) {
+function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <View style={styles.section}>
       <Text style={styles.sectionTitle}>{title}</Text>
@@ -360,8 +329,8 @@ const styles = StyleSheet.create({
     marginBottom: spacing.lg,
   },
   header: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     marginBottom: spacing.lg,
   },
   headerText: {
@@ -390,7 +359,7 @@ const styles = StyleSheet.create({
   },
   scoreCaption: {
     ...typography.caption,
-    fontWeight: "700",
+    fontWeight: '700',
     marginBottom: spacing.sm,
   },
   section: {
@@ -398,13 +367,13 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     ...typography.caption,
-    fontWeight: "700",
-    textTransform: "uppercase",
+    fontWeight: '700',
+    textTransform: 'uppercase',
     marginBottom: spacing.xs,
   },
   chipRow: {
-    flexDirection: "row",
-    flexWrap: "wrap",
+    flexDirection: 'row',
+    flexWrap: 'wrap',
     marginTop: spacing.xs,
   },
   actions: {
@@ -458,7 +427,7 @@ const styles = StyleSheet.create({
   detailsInput: {
     ...typography.body,
     minHeight: 88,
-    textAlignVertical: "top",
+    textAlignVertical: 'top',
     backgroundColor: colors.background,
     borderWidth: 1,
     borderColor: colors.border,
@@ -468,8 +437,8 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
   },
   confirmActions: {
-    flexDirection: "row",
-    justifyContent: "flex-end",
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
   },
   actionGap: {
     width: spacing.sm,

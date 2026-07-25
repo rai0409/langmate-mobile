@@ -41,27 +41,39 @@ export function isExpoPushToken(token: string): boolean {
   return /^(ExponentPushToken|ExpoPushToken)\[[^\]]+\]$/.test(token);
 }
 
-export function classifyProviderCode(code: string | undefined): Pick<PushResult, "retryable" | "permanent" | "invalidToken"> {
-  if (code === "DeviceNotRegistered" || code === "InvalidCredentials") {
-    return { retryable: false, permanent: true, invalidToken: code === "DeviceNotRegistered" };
+export function classifyProviderCode(
+  code: string | undefined,
+): Pick<PushResult, 'retryable' | 'permanent' | 'invalidToken'> {
+  if (code === 'DeviceNotRegistered' || code === 'InvalidCredentials') {
+    return { retryable: false, permanent: true, invalidToken: code === 'DeviceNotRegistered' };
   }
-  if (["MessageRateExceeded", "ServiceUnavailable", "InternalServerError", "Timeout"].includes(code ?? "")) {
+  if (
+    ['MessageRateExceeded', 'ServiceUnavailable', 'InternalServerError', 'Timeout'].includes(
+      code ?? '',
+    )
+  ) {
     return { retryable: true, permanent: false, invalidToken: false };
   }
   return { retryable: false, permanent: true, invalidToken: false };
 }
 
 export function validatePayload(payload: PushPayload): boolean {
-  return payload.title.length > 0 && payload.title.length <= 120
-    && payload.body.length > 0 && payload.body.length <= 160
-    && Object.values(payload.data).every((value) => typeof value === "string" && value.length > 0);
+  return (
+    payload.title.length > 0 &&
+    payload.title.length <= 120 &&
+    payload.body.length > 0 &&
+    payload.body.length <= 160 &&
+    Object.values(payload.data).every((value) => typeof value === 'string' && value.length > 0)
+  );
 }
 
-export function makeMessagePayload(input: Omit<PushPayload["data"], "idempotencyKey"> & { idempotencyKey: string }): PushPayload {
+export function makeMessagePayload(
+  input: Omit<PushPayload['data'], 'idempotencyKey'> & { idempotencyKey: string },
+): PushPayload {
   return {
-    title: "New message",
+    title: 'New message',
     // Deliberately never derive this from message text; lock-screen content is private.
-    body: "You have a new message in LangMate.",
+    body: 'You have a new message in LangMate.',
     data: input,
   };
 }

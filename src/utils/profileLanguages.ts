@@ -1,10 +1,10 @@
-import { languageLabel } from "../constants/options";
-import type { LanguageCode, Profile } from "../types/domain";
+import { languageLabel } from '../constants/options';
+import type { LanguageCode, Profile } from '../types/domain';
 
 function uniqueLanguages(values: (LanguageCode | undefined | null)[]): LanguageCode[] {
   return values.filter(
     (value, index, array): value is LanguageCode =>
-      Boolean(value) && array.indexOf(value) === index
+      Boolean(value) && array.indexOf(value) === index,
   );
 }
 
@@ -17,13 +17,10 @@ export function targetLanguagesForProfile(profile: Profile): LanguageCode[] {
 }
 
 export function formatLanguageList(languages: LanguageCode[]): string {
-  return languages.map(languageLabel).join(", ");
+  return languages.map(languageLabel).join(', ');
 }
 
-export function languageListsIntersect(
-  left: LanguageCode[],
-  right: LanguageCode[]
-): boolean {
+export function languageListsIntersect(left: LanguageCode[], right: LanguageCode[]): boolean {
   const rightSet = new Set(right);
   return left.some((language) => rightSet.has(language));
 }

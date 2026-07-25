@@ -1,21 +1,17 @@
-import React from "react";
-import { StyleSheet, Text, View } from "react-native";
-import {
-  availabilityLabel,
-  learningGoalLabel,
-  levelLabel,
-} from "../constants/options";
-import { colors, radius, spacing, typography } from "../theme/theme";
-import type { MatchScoreResult, Profile } from "../types/domain";
+import React from 'react';
+import { StyleSheet, Text, View } from 'react-native';
+import { availabilityLabel, learningGoalLabel, levelLabel } from '../constants/options';
+import { colors, radius, spacing, typography } from '../theme/theme';
+import type { MatchScoreResult, Profile } from '../types/domain';
 import {
   formatLanguageList,
   nativeLanguagesForProfile,
   targetLanguagesForProfile,
-} from "../utils/profileLanguages";
-import { AppButton } from "./AppButton";
-import { Chip } from "./Chip";
-import { MatchReasonList } from "./MatchReasonList";
-import { ProfileAvatar } from "./ProfileAvatar";
+} from '../utils/profileLanguages';
+import { AppButton } from './AppButton';
+import { Chip } from './Chip';
+import { MatchReasonList } from './MatchReasonList';
+import { ProfileAvatar } from './ProfileAvatar';
 
 interface ProfileCardProps {
   profile: Profile;
@@ -46,9 +42,7 @@ export function ProfileCard({
         <ProfileAvatar profile={profile} size={52} />
         <View style={styles.headerText}>
           <Text style={styles.name}>{profile.displayName}</Text>
-          {profile.country ? (
-            <Text style={styles.country}>{profile.country}</Text>
-          ) : null}
+          {profile.country ? <Text style={styles.country}>{profile.country}</Text> : null}
         </View>
         <View style={styles.scoreBox}>
           {scoreResult.score !== null ? (
@@ -72,9 +66,7 @@ export function ProfileCard({
       </View>
       <View style={styles.langRow}>
         <Text style={styles.langItem}>Level: {levelLabel(profile.level)}</Text>
-        <Text style={styles.langItem}>
-          Goal: {learningGoalLabel(profile.learningGoal)}
-        </Text>
+        <Text style={styles.langItem}>Goal: {learningGoalLabel(profile.learningGoal)}</Text>
       </View>
 
       {profile.interests.length > 0 ? (
@@ -93,8 +85,7 @@ export function ProfileCard({
         </View>
       ) : null}
 
-      {scoreResult.whyMatched.length > 0 ||
-      scoreResult.missingFields.length > 0 ? (
+      {scoreResult.whyMatched.length > 0 || scoreResult.missingFields.length > 0 ? (
         <View style={styles.reasons}>
           <MatchReasonList
             reasons={scoreResult.whyMatched}
@@ -126,7 +117,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing.lg,
   },
   previewBadge: {
-    alignSelf: "flex-start",
+    alignSelf: 'flex-start',
     backgroundColor: colors.dangerSoft,
     borderRadius: radius.sm,
     paddingHorizontal: spacing.sm,
@@ -135,12 +126,12 @@ const styles = StyleSheet.create({
   },
   previewText: {
     fontSize: 12,
-    fontWeight: "600",
+    fontWeight: '600',
     color: colors.danger,
   },
   header: {
-    flexDirection: "row",
-    alignItems: "flex-start",
+    flexDirection: 'row',
+    alignItems: 'flex-start',
     marginBottom: spacing.sm,
   },
   headerText: {
@@ -155,7 +146,7 @@ const styles = StyleSheet.create({
     ...typography.caption,
   },
   scoreBox: {
-    alignItems: "center",
+    alignItems: 'center',
     backgroundColor: colors.accentSoft,
     borderRadius: radius.md,
     paddingHorizontal: spacing.md,
@@ -164,7 +155,7 @@ const styles = StyleSheet.create({
   },
   scoreValue: {
     fontSize: 22,
-    fontWeight: "700",
+    fontWeight: '700',
     color: colors.accent,
   },
   scoreLabel: {
@@ -174,11 +165,11 @@ const styles = StyleSheet.create({
   scoreMissing: {
     fontSize: 12,
     color: colors.textMuted,
-    textAlign: "center",
+    textAlign: 'center',
   },
   langRow: {
-    flexDirection: "row",
-    flexWrap: "wrap",
+    flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: spacing.lg,
     marginBottom: spacing.xs,
   },
@@ -186,8 +177,8 @@ const styles = StyleSheet.create({
     ...typography.body,
   },
   chipRow: {
-    flexDirection: "row",
-    flexWrap: "wrap",
+    flexDirection: 'row',
+    flexWrap: 'wrap',
     marginTop: spacing.sm,
   },
   reasons: {
@@ -197,7 +188,7 @@ const styles = StyleSheet.create({
     padding: spacing.md,
   },
   actions: {
-    flexDirection: "row",
+    flexDirection: 'row',
     gap: spacing.md,
     marginTop: spacing.lg,
     marginBottom: spacing.xs,

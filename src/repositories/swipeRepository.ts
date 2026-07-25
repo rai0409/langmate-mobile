@@ -1,8 +1,8 @@
-import { doc, getDoc, serverTimestamp, setDoc } from "firebase/firestore";
-import { getConfiguredDb } from "./firestoreHelpers";
-import type { Swipe, SwipeAction } from "../types/domain";
+import { doc, getDoc, serverTimestamp, setDoc } from 'firebase/firestore';
+import { getConfiguredDb } from './firestoreHelpers';
+import type { Swipe, SwipeAction } from '../types/domain';
 
-const SWIPES = "swipes";
+const SWIPES = 'swipes';
 
 export function buildSwipeId(fromUid: string, toUid: string): string {
   return `${fromUid}_${toUid}`;
@@ -11,7 +11,7 @@ export function buildSwipeId(fromUid: string, toUid: string): string {
 export async function createSwipe(
   fromUid: string,
   toUid: string,
-  action: SwipeAction
+  action: SwipeAction,
 ): Promise<void> {
   const db = getConfiguredDb();
   const swipe: Swipe = {
@@ -23,13 +23,8 @@ export async function createSwipe(
   await setDoc(doc(db, SWIPES, buildSwipeId(fromUid, toUid)), swipe);
 }
 
-export async function getSwipe(
-  fromUid: string,
-  toUid: string
-): Promise<Swipe | null> {
+export async function getSwipe(fromUid: string, toUid: string): Promise<Swipe | null> {
   const db = getConfiguredDb();
-  const snapshot = await getDoc(
-    doc(db, SWIPES, buildSwipeId(fromUid, toUid))
-  );
+  const snapshot = await getDoc(doc(db, SWIPES, buildSwipeId(fromUid, toUid)));
   return snapshot.exists() ? (snapshot.data() as Swipe) : null;
 }

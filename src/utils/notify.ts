@@ -1,10 +1,9 @@
-import { Alert, Platform } from "react-native";
-import { getErrorMessage } from "./errorMessage";
+import { Alert, Platform } from 'react-native';
+import { getErrorMessage } from './errorMessage';
 
 /** Cross-platform alert: Alert.alert is a no-op on react-native-web. */
 export function notify(title: string, message?: string): void {
-  if (Platform.OS === "web") {
-    // eslint-disable-next-line no-alert
+  if (Platform.OS === 'web') {
     window.alert(message ? `${title}\n\n${message}` : title);
     return;
   }

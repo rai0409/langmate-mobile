@@ -21,10 +21,19 @@
     "react-native-web": "^0.21.2"
   },
   "devDependencies": {
+    "@eslint/js": "9.39.5",
     "@firebase/rules-unit-testing": "^5.0.1",
     "@types/react": "~19.2.2",
+    "eslint": "9.39.5",
+    "eslint-config-prettier": "10.1.8",
+    "eslint-plugin-react": "7.37.5",
+    "eslint-plugin-react-hooks": "7.1.1",
+    "eslint-plugin-react-native": "5.0.0",
     "firebase-tools": "^15.23.0",
-    "typescript": "~6.0.3"
+    "globals": "17.7.0",
+    "prettier": "3.9.6",
+    "typescript": "~6.0.3",
+    "typescript-eslint": "8.65.0"
   },
   "scripts": {
     "start": "expo start",
@@ -34,6 +43,11 @@
     "web:8080": "expo start --web --port 8080 -c",
     "web:8080:host": "expo start --web --host 0.0.0.0 --port 8080 -c",
     "test:types": "tsc --noEmit",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "quality": "npm run test:types && npm run lint && npm run format:check",
     "test:rules": "firebase emulators:exec --only firestore --project demo-langmate \"node rules-tests/firestore.test.mjs\"",
     "test:functions:unread": "npm --prefix functions run build && firebase emulators:exec --only firestore,functions --project demo-langmate \"node scripts/functions_unread_e2e.mjs\"",
     "test:functions:match": "npm --prefix functions run build && firebase emulators:exec --only firestore,functions --project demo-langmate \"node scripts/functions_match_creation_e2e.mjs\"",

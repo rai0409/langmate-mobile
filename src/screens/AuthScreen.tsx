@@ -1,33 +1,26 @@
-import React, { useState } from "react";
-import {
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
-import { AppButton } from "../components/AppButton";
-import { AppTextInput } from "../components/AppTextInput";
-import { useAuth } from "../context/AuthContext";
-import { colors, spacing, typography } from "../theme/theme";
-import { logAppError } from "../utils/errorLogging";
-import { errorMessage } from "../utils/notify";
+import React, { useState } from 'react';
+import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { AppButton } from '../components/AppButton';
+import { AppTextInput } from '../components/AppTextInput';
+import { useAuth } from '../context/AuthContext';
+import { colors, spacing, typography } from '../theme/theme';
+import { logAppError } from '../utils/errorLogging';
+import { errorMessage } from '../utils/notify';
 
 export function AuthScreen() {
   const { signIn, signUp } = useAuth();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
   const validate = (): boolean => {
     if (!email.trim()) {
-      setError("Please enter your email address.");
+      setError('Please enter your email address.');
       return false;
     }
     if (!password) {
-      setError("Please enter your password.");
+      setError('Please enter your password.');
       return false;
     }
     return true;
@@ -35,18 +28,18 @@ export function AuthScreen() {
 
   // On success, onAuthStateChanged moves the app forward; on failure we show
   // the error and never a success state.
-  const handle = async (action: "login" | "signup") => {
+  const handle = async (action: 'login' | 'signup') => {
     setError(null);
     if (!validate()) return;
     setBusy(true);
     try {
-      if (action === "login") {
+      if (action === 'login') {
         await signIn(email, password);
       } else {
         await signUp(email, password);
       }
     } catch (e) {
-      logAppError("auth_screen_submit_failed", e, { action });
+      logAppError('auth_screen_submit_failed', e, { action });
       setError(errorMessage(e));
     } finally {
       setBusy(false);
@@ -56,13 +49,11 @@ export function AuthScreen() {
   return (
     <KeyboardAvoidingView
       style={styles.screen}
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       <ScrollView contentContainerStyle={styles.content}>
         <Text style={styles.logo}>LangMate</Text>
-        <Text style={styles.tagline}>
-          Find a partner. Teach your language. Learn theirs.
-        </Text>
+        <Text style={styles.tagline}>Find a partner. Teach your language. Learn theirs.</Text>
 
         <AppTextInput
           label="Email"
@@ -84,14 +75,14 @@ export function AuthScreen() {
 
         <View style={styles.buttons}>
           <AppButton
-            title={busy ? "Please wait..." : "Login"}
-            onPress={() => handle("login")}
+            title={busy ? 'Please wait...' : 'Login'}
+            onPress={() => handle('login')}
             disabled={busy}
           />
           <View style={styles.buttonGap} />
           <AppButton
-            title={busy ? "Please wait..." : "Signup"}
-            onPress={() => handle("signup")}
+            title={busy ? 'Please wait...' : 'Signup'}
+            onPress={() => handle('signup')}
             variant="secondary"
             disabled={busy}
           />
@@ -108,18 +99,18 @@ const styles = StyleSheet.create({
   },
   content: {
     flexGrow: 1,
-    justifyContent: "center",
+    justifyContent: 'center',
     padding: spacing.xl,
   },
   logo: {
     fontSize: 34,
-    fontWeight: "800",
+    fontWeight: '800',
     color: colors.primary,
-    textAlign: "center",
+    textAlign: 'center',
   },
   tagline: {
     ...typography.caption,
-    textAlign: "center",
+    textAlign: 'center',
     marginTop: spacing.xs,
     marginBottom: spacing.xxl,
   },

@@ -1,9 +1,9 @@
-import type { MatchScoreResult, Profile, UserLevel } from "../types/domain";
+import type { MatchScoreResult, Profile, UserLevel } from '../types/domain';
 import {
   languageListsIntersect,
   nativeLanguagesForProfile,
   targetLanguagesForProfile,
-} from "../utils/profileLanguages";
+} from '../utils/profileLanguages';
 
 const LEVEL_VALUE: Record<UserLevel, number> = {
   beginner: 1,
@@ -15,7 +15,7 @@ const LEVEL_VALUE: Record<UserLevel, number> = {
 
 export function calculateMatchScore(
   currentProfile: Profile,
-  candidateProfile: Profile
+  candidateProfile: Profile,
 ): MatchScoreResult {
   const missingFields: string[] = [];
   const currentNativeLangs = nativeLanguagesForProfile(currentProfile);
@@ -24,16 +24,16 @@ export function calculateMatchScore(
   const candidateTargetLangs = targetLanguagesForProfile(candidateProfile);
 
   if (currentNativeLangs.length === 0) {
-    missingFields.push("currentProfile.nativeLang");
+    missingFields.push('currentProfile.nativeLang');
   }
   if (currentTargetLangs.length === 0) {
-    missingFields.push("currentProfile.targetLang");
+    missingFields.push('currentProfile.targetLang');
   }
   if (candidateNativeLangs.length === 0) {
-    missingFields.push("candidateProfile.nativeLang");
+    missingFields.push('candidateProfile.nativeLang');
   }
   if (candidateTargetLangs.length === 0) {
-    missingFields.push("candidateProfile.targetLang");
+    missingFields.push('candidateProfile.targetLang');
   }
 
   if (missingFields.length > 0) {
@@ -44,28 +44,22 @@ export function calculateMatchScore(
   const whyMatched: string[] = [];
 
   // 1. Reciprocal language pair: max 45
-  const helpsMe = languageListsIntersect(
-    currentTargetLangs,
-    candidateNativeLangs
-  );
-  const helpsThem = languageListsIntersect(
-    candidateTargetLangs,
-    currentNativeLangs
-  );
+  const helpsMe = languageListsIntersect(currentTargetLangs, candidateNativeLangs);
+  const helpsThem = languageListsIntersect(candidateTargetLangs, currentNativeLangs);
   if (helpsMe) score += 25;
   if (helpsThem) score += 20;
   if (helpsMe && helpsThem) {
-    whyMatched.push("You can help each other with your target languages.");
+    whyMatched.push('You can help each other with your target languages.');
   } else if (helpsMe || helpsThem) {
-    whyMatched.push("This partner matches one side of your language goals.");
+    whyMatched.push('This partner matches one side of your language goals.');
   }
 
   // 2. Shared interests: max 20 (+5 each, lowercase comparison)
   const candidateInterests = new Set(
-    (candidateProfile.interests ?? []).map((i) => i.toLowerCase())
+    (candidateProfile.interests ?? []).map((i) => i.toLowerCase()),
   );
   const shared = (currentProfile.interests ?? []).filter((i) =>
-    candidateInterests.has(i.toLowerCase())
+    candidateInterests.has(i.toLowerCase()),
   );
   if (shared.length > 0) {
     score += Math.min(shared.length * 5, 20);
@@ -78,17 +72,15 @@ export function calculateMatchScore(
     currentProfile.learningGoal === candidateProfile.learningGoal
   ) {
     score += 15;
-    whyMatched.push("You have the same learning goal.");
+    whyMatched.push('You have the same learning goal.');
   }
 
   // 4. Availability overlap: max 10
   const candidateTimes = new Set(candidateProfile.availableTimes ?? []);
-  const hasOverlap = (currentProfile.availableTimes ?? []).some((t) =>
-    candidateTimes.has(t)
-  );
+  const hasOverlap = (currentProfile.availableTimes ?? []).some((t) => candidateTimes.has(t));
   if (hasOverlap) {
     score += 10;
-    whyMatched.push("You have overlapping availability.");
+    whyMatched.push('You have overlapping availability.');
   }
 
   // 5. Level balance: max 10
@@ -99,7 +91,7 @@ export function calculateMatchScore(
     const levelPoints = diff <= 1 ? 10 : diff === 2 ? 5 : 0;
     if (levelPoints > 0) {
       score += levelPoints;
-      whyMatched.push("Your levels look compatible.");
+      whyMatched.push('Your levels look compatible.');
     }
   }
 
@@ -117,20 +109,16 @@ export interface RankedCandidate {
 
 export function filterAndRankCandidates(
   currentProfile: Profile,
-  candidates: Profile[]
+  candidates: Profile[],
 ): RankedCandidate[] {
   return candidates
-    .filter(
-      (candidate) =>
-        candidate.uid !== currentProfile.uid && candidate.isDiscoverable
-    )
+    .filter((candidate) => candidate.uid !== currentProfile.uid && candidate.isDiscoverable)
     .map((profile) => ({
       profile,
       scoreResult: calculateMatchScore(currentProfile, profile),
     }))
     .sort((a, b) => {
-      if (a.scoreResult.score === null && b.scoreResult.score === null)
-        return 0;
+      if (a.scoreResult.score === null && b.scoreResult.score === null) return 0;
       if (a.scoreResult.score === null) return 1;
       if (b.scoreResult.score === null) return -1;
       return b.scoreResult.score - a.scoreResult.score;

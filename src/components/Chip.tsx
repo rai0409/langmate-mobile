@@ -1,6 +1,6 @@
-import React from "react";
-import { Pressable, StyleSheet, Text } from "react-native";
-import { colors, radius, spacing } from "../theme/theme";
+import React from 'react';
+import { Pressable, StyleSheet, Text } from 'react-native';
+import { colors, radius, spacing } from '../theme/theme';
 
 interface ChipProps {
   label: string;
@@ -15,9 +15,7 @@ export function Chip({ label, selected, onPress }: ChipProps) {
       disabled={!onPress}
       style={[styles.chip, selected && styles.selected]}
     >
-      <Text style={[styles.label, selected && styles.selectedLabel]}>
-        {label}
-      </Text>
+      <Text style={[styles.label, selected && styles.selectedLabel]}>{label}</Text>
     </Pressable>
   );
 }
@@ -42,7 +40,7 @@ const styles = StyleSheet.create({
     color: colors.text,
   },
   selectedLabel: {
-    color: "#FFFFFF",
-    fontWeight: "600",
+    color: '#FFFFFF',
+    fontWeight: '600',
   },
 });

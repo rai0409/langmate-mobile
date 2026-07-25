@@ -1,4 +1,4 @@
-import { getSafeErrorMessage } from "./errorLogging";
+import { getSafeErrorMessage } from './errorLogging';
 
 /**
  * Returns a safe, human-readable message for an unknown error value.
@@ -7,5 +7,5 @@ import { getSafeErrorMessage } from "./errorLogging";
  */
 export function getErrorMessage(error: unknown, fallback?: string): string {
   const message = getSafeErrorMessage(error);
-  return message || fallback || "Something went wrong.";
+  return message || fallback || 'Something went wrong.';
 }

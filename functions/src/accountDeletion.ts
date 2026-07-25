@@ -1,9 +1,8 @@
-export const ACCOUNT_DELETION_REQUESTS_COLLECTION =
-  "accountDeletionRequests" as const;
+export const ACCOUNT_DELETION_REQUESTS_COLLECTION = 'accountDeletionRequests' as const;
 
-export const ACCOUNT_DELETION_STATUS_REQUESTED = "requested" as const;
-export const ACCOUNT_DELETION_STATUS_PROCESSING = "processing" as const;
-export const ACCOUNT_DELETION_STATUS_COMPLETED = "completed" as const;
+export const ACCOUNT_DELETION_STATUS_REQUESTED = 'requested' as const;
+export const ACCOUNT_DELETION_STATUS_PROCESSING = 'processing' as const;
+export const ACCOUNT_DELETION_STATUS_COMPLETED = 'completed' as const;
 
 export type AccountDeletionStatus =
   | typeof ACCOUNT_DELETION_STATUS_REQUESTED

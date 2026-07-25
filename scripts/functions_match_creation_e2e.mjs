@@ -1,25 +1,21 @@
-import { createRequire } from "node:module";
+import { createRequire } from 'node:module';
 
-const projectId = "demo-langmate";
-const userA = "functions-match-e2e-user-a";
-const userB = "functions-match-e2e-user-b";
-const skipUserA = "functions-match-e2e-skip-user-a";
-const skipUserB = "functions-match-e2e-skip-user-b";
+const projectId = 'demo-langmate';
+const userA = 'functions-match-e2e-user-a';
+const userB = 'functions-match-e2e-user-b';
+const skipUserA = 'functions-match-e2e-skip-user-a';
+const skipUserB = 'functions-match-e2e-skip-user-b';
 
 if (!process.env.FIRESTORE_EMULATOR_HOST) {
   console.error(
-    "FAIL functions match creation E2E: FIRESTORE_EMULATOR_HOST is not set. Run through firebase emulators:exec."
+    'FAIL functions match creation E2E: FIRESTORE_EMULATOR_HOST is not set. Run through firebase emulators:exec.',
   );
   process.exit(1);
 }
 
-const requireFromFunctions = createRequire(
-  new URL("../functions/package.json", import.meta.url)
-);
-const { initializeApp } = requireFromFunctions("firebase-admin/app");
-const { FieldValue, getFirestore } = requireFromFunctions(
-  "firebase-admin/firestore"
-);
+const requireFromFunctions = createRequire(new URL('../functions/package.json', import.meta.url));
+const { initializeApp } = requireFromFunctions('firebase-admin/app');
+const { FieldValue, getFirestore } = requireFromFunctions('firebase-admin/firestore');
 
 initializeApp({ projectId });
 
@@ -34,7 +30,7 @@ function buildSwipeId(fromUid, toUid) {
 }
 
 function buildMatchId(uidA, uidB) {
-  return [uidA, uidB].sort().join("_");
+  return [uidA, uidB].sort().join('_');
 }
 
 function sortedMembers(uidA, uidB) {
@@ -99,13 +95,8 @@ async function verifyNoMatch(uidA, uidB, timeoutMs = 1500) {
 
 async function countMatchesForPair(uidA, uidB) {
   const expected = sortedMembers(uidA, uidB);
-  const snapshot = await db
-    .collection("matches")
-    .where("memberUids", "array-contains", uidA)
-    .get();
-  return snapshot.docs.filter((doc) =>
-    sameMembers(doc.data().memberUids, expected)
-  ).length;
+  const snapshot = await db.collection('matches').where('memberUids', 'array-contains', uidA).get();
+  return snapshot.docs.filter((doc) => sameMembers(doc.data().memberUids, expected)).length;
 }
 
 function assertValidMatch(match, uidA, uidB) {
@@ -119,15 +110,13 @@ function assertValidMatch(match, uidA, uidB) {
     throw new Error(`expected matchId ${matchId}, got ${match.matchId}`);
   }
   if (!sameMembers(match.memberUids, expectedMembers)) {
-    throw new Error(
-      `expected memberUids ${expectedMembers.join(",")}, got ${match.memberUids}`
-    );
+    throw new Error(`expected memberUids ${expectedMembers.join(',')}, got ${match.memberUids}`);
   }
   if (!match.createdAt) {
-    throw new Error("createdAt is missing");
+    throw new Error('createdAt is missing');
   }
   if (!match.updatedAt) {
-    throw new Error("updatedAt is missing");
+    throw new Error('updatedAt is missing');
   }
 }
 
@@ -139,50 +128,46 @@ function timestampsEqual(left, right) {
 }
 
 try {
-  console.log("functions match creation E2E: clearing prior test documents");
+  console.log('functions match creation E2E: clearing prior test documents');
   await clearTestDocuments();
 
-  console.log("functions match creation E2E: case 1 one-sided connect");
-  await writeSwipe(userA, userB, "connect");
+  console.log('functions match creation E2E: case 1 one-sided connect');
+  await writeSwipe(userA, userB, 'connect');
   await verifyNoMatch(userA, userB);
-  console.log("PASS functions match creation E2E: one-sided connect did not match");
+  console.log('PASS functions match creation E2E: one-sided connect did not match');
 
-  console.log("functions match creation E2E: case 2 mutual connect");
-  await writeSwipe(userB, userA, "connect");
+  console.log('functions match creation E2E: case 2 mutual connect');
+  await writeSwipe(userB, userA, 'connect');
   const match = await pollForMatch(userA, userB);
   assertValidMatch(match, userA, userB);
   const matchCount = await countMatchesForPair(userA, userB);
   if (matchCount !== 1) {
     throw new Error(`expected one match for pair, got ${matchCount}`);
   }
-  console.log("PASS functions match creation E2E: mutual connect created one match");
+  console.log('PASS functions match creation E2E: mutual connect created one match');
 
-  console.log("functions match creation E2E: case 3 idempotency");
+  console.log('functions match creation E2E: case 3 idempotency');
   const createdAt = match.createdAt;
-  await writeSwipe(userA, userB, "connect");
+  await writeSwipe(userA, userB, 'connect');
   const rewrittenMatch = await pollForMatch(userA, userB);
   assertValidMatch(rewrittenMatch, userA, userB);
   const rewrittenMatchCount = await countMatchesForPair(userA, userB);
   if (rewrittenMatchCount !== 1) {
-    throw new Error(
-      `expected one match after rewrite, got ${rewrittenMatchCount}`
-    );
+    throw new Error(`expected one match after rewrite, got ${rewrittenMatchCount}`);
   }
   if (!timestampsEqual(createdAt, rewrittenMatch.createdAt)) {
-    throw new Error("createdAt changed after idempotent rewrite");
+    throw new Error('createdAt changed after idempotent rewrite');
   }
-  console.log("PASS functions match creation E2E: connect rewrite stayed idempotent");
+  console.log('PASS functions match creation E2E: connect rewrite stayed idempotent');
 
-  console.log("functions match creation E2E: case 4 skip does not match");
-  await writeSwipe(skipUserA, skipUserB, "connect");
-  await writeSwipe(skipUserB, skipUserA, "skip");
+  console.log('functions match creation E2E: case 4 skip does not match');
+  await writeSwipe(skipUserA, skipUserB, 'connect');
+  await writeSwipe(skipUserB, skipUserA, 'skip');
   await verifyNoMatch(skipUserA, skipUserB);
-  console.log("PASS functions match creation E2E: skip did not match");
+  console.log('PASS functions match creation E2E: skip did not match');
 } catch (error) {
   console.error(
-    `FAIL functions match creation E2E: ${
-      error instanceof Error ? error.message : error
-    }`
+    `FAIL functions match creation E2E: ${error instanceof Error ? error.message : error}`,
   );
   process.exit(1);
 }
