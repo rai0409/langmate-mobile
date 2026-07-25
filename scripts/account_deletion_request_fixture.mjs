@@ -1,17 +1,13 @@
 #!/usr/bin/env node
-import { readFileSync } from "node:fs";
-import { fileURLToPath } from "node:url";
-import { dirname, join } from "node:path";
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import { dirname, join } from 'node:path';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const fixturePath = join(
-  __dirname,
-  "fixtures",
-  "account_deletion_requests_fixture.json"
-);
+const fixturePath = join(__dirname, 'fixtures', 'account_deletion_requests_fixture.json');
 
 function requireString(value, field, context) {
-  if (typeof value !== "string" || value.trim() === "") {
+  if (typeof value !== 'string' || value.trim() === '') {
     throw new Error(`${context}.${field} must be a non-empty string`);
   }
   return value.trim();
@@ -19,7 +15,7 @@ function requireString(value, field, context) {
 
 function optionalString(value, field, context) {
   if (value === undefined) return undefined;
-  if (typeof value !== "string") {
+  if (typeof value !== 'string') {
     throw new Error(`${context}.${field} must be a string when provided`);
   }
   return value.trim();
@@ -36,9 +32,9 @@ function validateIsoDate(value, field, context) {
 
 function validateRequest(request, index) {
   const context = `requests[${index}]`;
-  const uid = requireString(request.uid, "uid", context);
-  const status = requireString(request.status, "status", context);
-  if (status !== "requested") {
+  const uid = requireString(request.uid, 'uid', context);
+  const status = requireString(request.status, 'status', context);
+  if (status !== 'requested') {
     throw new Error(`${context}.status must be requested`);
   }
 
@@ -46,17 +42,17 @@ function validateRequest(request, index) {
     path: `accountDeletionRequests/${uid}`,
     uid,
     status,
-    reason: optionalString(request.reason, "reason", context),
-    contactEmail: optionalString(request.contactEmail, "contactEmail", context),
-    requestedAt: validateIsoDate(request.requestedAt, "requestedAt", context),
+    reason: optionalString(request.reason, 'reason', context),
+    contactEmail: optionalString(request.contactEmail, 'contactEmail', context),
+    requestedAt: validateIsoDate(request.requestedAt, 'requestedAt', context),
     updatedAt: new Date().toISOString(),
-    source: optionalString(request.source, "source", context) ?? "local-fixture",
+    source: optionalString(request.source, 'source', context) ?? 'local-fixture',
   };
 }
 
-const fixture = JSON.parse(readFileSync(fixturePath, "utf8"));
+const fixture = JSON.parse(readFileSync(fixturePath, 'utf8'));
 if (!Array.isArray(fixture.requests)) {
-  throw new Error("Fixture requests must be an array");
+  throw new Error('Fixture requests must be an array');
 }
 
 const requests = fixture.requests.map(validateRequest);
@@ -64,16 +60,16 @@ const requests = fixture.requests.map(validateRequest);
 console.log(
   JSON.stringify(
     {
-      mode: "local-fixture-only",
+      mode: 'local-fixture-only',
       firebaseConnected: false,
       credentialsRequired: false,
       realDataDeleted: false,
       requestsValidated: requests.length,
       requests,
       nextProductionStep:
-        "Implement an Admin SDK or Cloud Functions processor after legal and retention review.",
+        'Implement an Admin SDK or Cloud Functions processor after legal and retention review.',
     },
     null,
-    2
-  )
+    2,
+  ),
 );

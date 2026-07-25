@@ -1,19 +1,13 @@
-import React, {
-  createContext,
-  useContext,
-  useEffect,
-  useMemo,
-  useState,
-} from "react";
+import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import {
   createUserWithEmailAndPassword,
   onAuthStateChanged,
   signInWithEmailAndPassword,
   signOut as firebaseSignOut,
   type User,
-} from "firebase/auth";
-import { auth, hasFirebaseConfig } from "../firebase/config";
-import { invalidateCurrentExpoPushToken } from "../repositories/pushTokenRepository";
+} from 'firebase/auth';
+import { auth, hasFirebaseConfig } from '../firebase/config';
+import { invalidateCurrentExpoPushToken } from '../repositories/pushTokenRepository';
 
 interface AuthContextValue {
   currentUser: User | null;
@@ -27,7 +21,7 @@ const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
 function notConfiguredError(): Error {
   return new Error(
-    "Firebase is not configured. Copy .env.example to .env and fill in your Firebase settings."
+    'Firebase is not configured. Copy .env.example to .env and fill in your Firebase settings.',
   );
 }
 
@@ -53,20 +47,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       loading,
       signIn: async (email, password) => {
         if (!auth) throw notConfiguredError();
-        const credential = await signInWithEmailAndPassword(
-          auth,
-          email.trim(),
-          password
-        );
+        const credential = await signInWithEmailAndPassword(auth, email.trim(), password);
         return credential.user;
       },
       signUp: async (email, password) => {
         if (!auth) throw notConfiguredError();
-        const credential = await createUserWithEmailAndPassword(
-          auth,
-          email.trim(),
-          password
-        );
+        const credential = await createUserWithEmailAndPassword(auth, email.trim(), password);
         return credential.user;
       },
       signOut: async () => {
@@ -75,7 +61,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         await firebaseSignOut(auth);
       },
     }),
-    [currentUser, loading]
+    [currentUser, loading],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
@@ -84,7 +70,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 export function useAuth(): AuthContextValue {
   const context = useContext(AuthContext);
   if (!context) {
-    throw new Error("useAuth must be used inside an AuthProvider");
+    throw new Error('useAuth must be used inside an AuthProvider');
   }
   return context;
 }

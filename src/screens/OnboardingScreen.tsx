@@ -1,27 +1,21 @@
-import React, { useEffect, useState } from "react";
-import {
-  ScrollView,
-  StyleSheet,
-  Switch,
-  Text,
-  View,
-} from "react-native";
-import { AppButton } from "../components/AppButton";
-import { AppTextInput } from "../components/AppTextInput";
-import { Chip } from "../components/Chip";
-import { PlanBadge } from "../components/PlanBadge";
-import { UpgradeHintCard } from "../components/UpgradeHintCard";
+import React, { useEffect, useState } from 'react';
+import { ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
+import { AppButton } from '../components/AppButton';
+import { AppTextInput } from '../components/AppTextInput';
+import { Chip } from '../components/Chip';
+import { PlanBadge } from '../components/PlanBadge';
+import { UpgradeHintCard } from '../components/UpgradeHintCard';
 import {
   AVAILABILITY_OPTIONS,
   LANGUAGE_OPTIONS,
   LEARNING_GOAL_OPTIONS,
   LEVEL_OPTIONS,
-} from "../constants/options";
-import { getPlanLimits } from "../config/planLimits";
-import { useAuth } from "../context/AuthContext";
-import { getUserPlan } from "../repositories/entitlementRepository";
-import { upsertProfile } from "../repositories/profileRepository";
-import { colors, radius, spacing, typography } from "../theme/theme";
+} from '../constants/options';
+import { getPlanLimits } from '../config/planLimits';
+import { useAuth } from '../context/AuthContext';
+import { getUserPlan } from '../repositories/entitlementRepository';
+import { upsertProfile } from '../repositories/profileRepository';
+import { colors, radius, spacing, typography } from '../theme/theme';
 import type {
   AvailabilitySlot,
   LanguageCode,
@@ -29,59 +23,45 @@ import type {
   Profile,
   Plan,
   UserLevel,
-} from "../types/domain";
-import { logAppError } from "../utils/errorLogging";
-import { errorMessage, notify } from "../utils/notify";
-import {
-  nativeLanguagesForProfile,
-  targetLanguagesForProfile,
-} from "../utils/profileLanguages";
+} from '../types/domain';
+import { logAppError } from '../utils/errorLogging';
+import { errorMessage, notify } from '../utils/notify';
+import { nativeLanguagesForProfile, targetLanguagesForProfile } from '../utils/profileLanguages';
 
 interface OnboardingScreenProps {
   existingProfile?: Profile | null;
   onSaved?: () => void;
 }
 
-export function OnboardingScreen({
-  existingProfile,
-  onSaved,
-}: OnboardingScreenProps) {
+export function OnboardingScreen({ existingProfile, onSaved }: OnboardingScreenProps) {
   const { currentUser } = useAuth();
 
-  const [displayName, setDisplayName] = useState(
-    existingProfile?.displayName ?? ""
-  );
-  const [plan, setPlan] = useState<Plan>("free");
+  const [displayName, setDisplayName] = useState(existingProfile?.displayName ?? '');
+  const [plan, setPlan] = useState<Plan>('free');
   const [nativeLangs, setNativeLangs] = useState<LanguageCode[]>(
-    existingProfile ? nativeLanguagesForProfile(existingProfile) : []
+    existingProfile ? nativeLanguagesForProfile(existingProfile) : [],
   );
   const [targetLangs, setTargetLangs] = useState<LanguageCode[]>(
-    existingProfile ? targetLanguagesForProfile(existingProfile) : []
+    existingProfile ? targetLanguagesForProfile(existingProfile) : [],
   );
-  const [level, setLevel] = useState<UserLevel | null>(
-    existingProfile?.level ?? null
-  );
+  const [level, setLevel] = useState<UserLevel | null>(existingProfile?.level ?? null);
   const [learningGoal, setLearningGoal] = useState<LearningGoal | null>(
-    existingProfile?.learningGoal ?? null
+    existingProfile?.learningGoal ?? null,
   );
-  const [interestsText, setInterestsText] = useState(
-    (existingProfile?.interests ?? []).join(", ")
-  );
+  const [interestsText, setInterestsText] = useState((existingProfile?.interests ?? []).join(', '));
   const [availableTimes, setAvailableTimes] = useState<AvailabilitySlot[]>(
-    existingProfile?.availableTimes ?? []
+    existingProfile?.availableTimes ?? [],
   );
-  const [country, setCountry] = useState(existingProfile?.country ?? "");
-  const [bio, setBio] = useState(existingProfile?.bio ?? "");
-  const [isDiscoverable, setIsDiscoverable] = useState(
-    existingProfile?.isDiscoverable ?? true
-  );
+  const [country, setCountry] = useState(existingProfile?.country ?? '');
+  const [bio, setBio] = useState(existingProfile?.bio ?? '');
+  const [isDiscoverable, setIsDiscoverable] = useState(existingProfile?.isDiscoverable ?? true);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
   const planLimits = getPlanLimits(plan);
 
   useEffect(() => {
     if (!currentUser) {
-      setPlan("free");
+      setPlan('free');
       return;
     }
     let cancelled = false;
@@ -95,7 +75,7 @@ export function OnboardingScreen({
 
   const toggleAvailability = (slot: AvailabilitySlot) => {
     setAvailableTimes((prev) =>
-      prev.includes(slot) ? prev.filter((s) => s !== slot) : [...prev, slot]
+      prev.includes(slot) ? prev.filter((s) => s !== slot) : [...prev, slot],
     );
   };
 
@@ -103,7 +83,7 @@ export function OnboardingScreen({
     language: LanguageCode,
     selectedLanguages: LanguageCode[],
     setSelectedLanguages: React.Dispatch<React.SetStateAction<LanguageCode[]>>,
-    limit: number
+    limit: number,
   ) => {
     if (selectedLanguages.includes(language)) {
       setSelectedLanguages((prev) => prev.filter((item) => item !== language));
@@ -111,49 +91,48 @@ export function OnboardingScreen({
     }
     if (selectedLanguages.length >= limit) {
       notify(
-        "Free language limit",
-        "Premium preview allows more languages. Payments are not enabled in this preview build yet."
+        'Free language limit',
+        'Premium preview allows more languages. Payments are not enabled in this preview build yet.',
       );
       return;
     }
     setSelectedLanguages((prev) => [...prev, language]);
   };
 
-  const sameLangWarning =
-    nativeLangs.some((language) => targetLangs.includes(language))
-      ? "Your native and target languages are the same. You can continue, but partner matching works best when they differ."
-      : null;
+  const sameLangWarning = nativeLangs.some((language) => targetLangs.includes(language))
+    ? 'Your native and target languages are the same. You can continue, but partner matching works best when they differ.'
+    : null;
 
   const save = async () => {
     const nextErrors: Record<string, string> = {};
-    if (!displayName.trim()) nextErrors.displayName = "Display name is required.";
+    if (!displayName.trim()) nextErrors.displayName = 'Display name is required.';
     if (nativeLangs.length === 0) {
-      nextErrors.nativeLang = "Native language is required.";
+      nextErrors.nativeLang = 'Native language is required.';
     } else if (nativeLangs.length > planLimits.nativeLanguages) {
       nextErrors.nativeLang =
-        "Premium will allow you to add more languages. Payments are not enabled in this preview build yet.";
+        'Premium will allow you to add more languages. Payments are not enabled in this preview build yet.';
     }
     if (targetLangs.length === 0) {
-      nextErrors.targetLang = "Target language is required.";
+      nextErrors.targetLang = 'Target language is required.';
     } else if (targetLangs.length > planLimits.targetLanguages) {
       nextErrors.targetLang =
-        "Premium will allow you to add more languages. Payments are not enabled in this preview build yet.";
+        'Premium will allow you to add more languages. Payments are not enabled in this preview build yet.';
     }
-    if (!level) nextErrors.level = "Level is required.";
-    if (!learningGoal) nextErrors.learningGoal = "Learning goal is required.";
-    if (!bio.trim()) nextErrors.bio = "Bio is required.";
+    if (!level) nextErrors.level = 'Level is required.';
+    if (!learningGoal) nextErrors.learningGoal = 'Learning goal is required.';
+    if (!bio.trim()) nextErrors.bio = 'Bio is required.';
     setErrors(nextErrors);
     if (Object.keys(nextErrors).length > 0) return;
 
     if (!currentUser) {
-      notify("Not signed in", "Please sign in again.");
+      notify('Not signed in', 'Please sign in again.');
       return;
     }
 
     setBusy(true);
     try {
       const interests = interestsText
-        .split(",")
+        .split(',')
         .map((s) => s.trim())
         .filter(Boolean);
       await upsertProfile(currentUser.uid, {
@@ -175,10 +154,10 @@ export function OnboardingScreen({
       });
       onSaved?.();
     } catch (e) {
-      logAppError("profile_save_failed", e, {
-        mode: existingProfile ? "edit" : "create",
+      logAppError('profile_save_failed', e, {
+        mode: existingProfile ? 'edit' : 'create',
       });
-      notify("Could not save profile", errorMessage(e));
+      notify('Could not save profile', errorMessage(e));
     } finally {
       setBusy(false);
     }
@@ -187,22 +166,20 @@ export function OnboardingScreen({
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
       <Text style={styles.title}>
-        {existingProfile ? "Edit your profile" : "Set up your profile"}
+        {existingProfile ? 'Edit your profile' : 'Set up your profile'}
       </Text>
-      <Text style={styles.subtitle}>
-        This is how partners will discover you.
-      </Text>
+      <Text style={styles.subtitle}>This is how partners will discover you.</Text>
 
       <View style={styles.planSummary}>
         <PlanBadge plan={plan} />
         <Text style={styles.planSummaryText}>
-          {plan === "premium"
-            ? "Premium preview: up to 2 native languages and 3 learning languages."
-            : "Free plan: 1 native language, 1 learning language."}
+          {plan === 'premium'
+            ? 'Premium preview: up to 2 native languages and 3 learning languages.'
+            : 'Free plan: 1 native language, 1 learning language.'}
         </Text>
         <Text style={styles.planSummaryMuted}>
-          Premium preview is read from your entitlement only. Payments are not
-          enabled in this preview build yet.
+          Premium preview is read from your entitlement only. Payments are not enabled in this
+          preview build yet.
         </Text>
       </View>
 
@@ -216,10 +193,10 @@ export function OnboardingScreen({
 
       <SectionLabel label="Native language" error={errors.nativeLang} />
       <Text style={styles.limitHint}>
-        Selected {nativeLangs.length} / {planLimits.nativeLanguages}.{" "}
-        {plan === "premium"
-          ? "Premium preview: up to 2 native languages."
-          : "Free plan: 1 native language."}
+        Selected {nativeLangs.length} / {planLimits.nativeLanguages}.{' '}
+        {plan === 'premium'
+          ? 'Premium preview: up to 2 native languages.'
+          : 'Free plan: 1 native language.'}
       </Text>
       <View style={styles.chipRow}>
         {LANGUAGE_OPTIONS.map((o) => (
@@ -232,7 +209,7 @@ export function OnboardingScreen({
                 o.value,
                 nativeLangs,
                 setNativeLangs,
-                planLimits.nativeLanguages
+                planLimits.nativeLanguages,
               )
             }
           />
@@ -241,10 +218,10 @@ export function OnboardingScreen({
 
       <SectionLabel label="Language you are learning" error={errors.targetLang} />
       <Text style={styles.limitHint}>
-        Selected {targetLangs.length} / {planLimits.targetLanguages}.{" "}
-        {plan === "premium"
-          ? "Premium preview: up to 3 learning languages."
-          : "Free plan: 1 learning language."}
+        Selected {targetLangs.length} / {planLimits.targetLanguages}.{' '}
+        {plan === 'premium'
+          ? 'Premium preview: up to 3 learning languages.'
+          : 'Free plan: 1 learning language.'}
       </Text>
       <View style={styles.chipRow}>
         {LANGUAGE_OPTIONS.map((o) => (
@@ -257,25 +234,20 @@ export function OnboardingScreen({
                 o.value,
                 targetLangs,
                 setTargetLangs,
-                planLimits.targetLanguages
+                planLimits.targetLanguages,
               )
             }
           />
         ))}
       </View>
 
-      {sameLangWarning ? (
-        <Text style={styles.warning}>{sameLangWarning}</Text>
-      ) : null}
+      {sameLangWarning ? <Text style={styles.warning}>{sameLangWarning}</Text> : null}
 
-      {plan === "free" ? (
+      {plan === 'free' ? (
         <View style={styles.upgradeWrap}>
           <UpgradeHintCard
             onPreview={() =>
-              notify(
-                "Premium coming soon",
-                "Payments are not enabled in this preview build yet."
-              )
+              notify('Premium coming soon', 'Payments are not enabled in this preview build yet.')
             }
           />
         </View>
@@ -343,9 +315,7 @@ export function OnboardingScreen({
       <View style={styles.toggleRow}>
         <View style={styles.toggleText}>
           <Text style={typography.body}>Show me in Discover</Text>
-          <Text style={typography.caption}>
-            Turn off to hide your profile from other learners.
-          </Text>
+          <Text style={typography.caption}>Turn off to hide your profile from other learners.</Text>
         </View>
         <Switch
           value={isDiscoverable}
@@ -354,11 +324,7 @@ export function OnboardingScreen({
         />
       </View>
 
-      <AppButton
-        title={busy ? "Saving..." : "Save profile"}
-        onPress={save}
-        disabled={busy}
-      />
+      <AppButton title={busy ? 'Saving...' : 'Save profile'} onPress={save} disabled={busy} />
       <View style={styles.bottomSpace} />
     </ScrollView>
   );
@@ -399,7 +365,7 @@ const styles = StyleSheet.create({
   },
   planSummaryText: {
     ...typography.body,
-    fontWeight: "700",
+    fontWeight: '700',
     marginTop: spacing.md,
   },
   planSummaryMuted: {
@@ -411,7 +377,7 @@ const styles = StyleSheet.create({
   },
   sectionLabelText: {
     ...typography.caption,
-    fontWeight: "600",
+    fontWeight: '600',
     color: colors.text,
   },
   sectionError: {
@@ -419,8 +385,8 @@ const styles = StyleSheet.create({
     color: colors.danger,
   },
   chipRow: {
-    flexDirection: "row",
-    flexWrap: "wrap",
+    flexDirection: 'row',
+    flexWrap: 'wrap',
     marginBottom: spacing.lg,
   },
   limitHint: {
@@ -436,9 +402,9 @@ const styles = StyleSheet.create({
     marginBottom: spacing.xl,
   },
   toggleRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     marginBottom: spacing.xl,
   },
   toggleText: {

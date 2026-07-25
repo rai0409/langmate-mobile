@@ -1,6 +1,6 @@
-import React from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
-import { colors, radius, spacing, typography } from "../theme/theme";
+import React from 'react';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { colors, radius, spacing, typography } from '../theme/theme';
 
 interface LearningSupportBarProps {
   onTranslate: () => void;
@@ -25,13 +25,7 @@ export function LearningSupportBar({
   );
 }
 
-function SupportButton({
-  title,
-  onPress,
-}: {
-  title: string;
-  onPress: () => void;
-}) {
+function SupportButton({ title, onPress }: { title: string; onPress: () => void }) {
   return (
     <Pressable
       onPress={onPress}
@@ -48,11 +42,11 @@ const styles = StyleSheet.create({
   },
   label: {
     ...typography.caption,
-    fontWeight: "700",
+    fontWeight: '700',
     marginBottom: spacing.xs,
   },
   bar: {
-    flexDirection: "row",
+    flexDirection: 'row',
     gap: spacing.sm,
   },
   button: {
@@ -62,14 +56,14 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
     paddingVertical: spacing.sm,
-    alignItems: "center",
+    alignItems: 'center',
   },
   pressed: {
     opacity: 0.7,
   },
   buttonText: {
     fontSize: 13,
-    fontWeight: "600",
+    fontWeight: '600',
     color: colors.primary,
   },
 });

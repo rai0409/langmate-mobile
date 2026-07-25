@@ -1,11 +1,11 @@
-import { onDocumentCreated } from "firebase-functions/v2/firestore";
-import { FieldValue, getFirestore } from "firebase-admin/firestore";
+import { onDocumentCreated } from 'firebase-functions/v2/firestore';
+import { FieldValue, getFirestore } from 'firebase-admin/firestore';
 import {
   DELIVERY_PROVIDER_NOT_CONFIGURED,
   NOTIFICATION_TYPE_MESSAGE_RECEIVED,
   OUTBOX_STATUS_PENDING,
   createNotificationOutboxRecord,
-} from "./notificationOutbox";
+} from './notificationOutbox';
 
 type MatchDocument = {
   memberUids?: unknown;
@@ -16,11 +16,11 @@ type MessageDocument = {
 };
 
 function isStringArray(value: unknown): value is string[] {
-  return Array.isArray(value) && value.every((item) => typeof item === "string");
+  return Array.isArray(value) && value.every((item) => typeof item === 'string');
 }
 
 export const incrementUnreadForMessage = onDocumentCreated(
-  "matches/{matchId}/messages/{messageId}",
+  'matches/{matchId}/messages/{messageId}',
   async (event) => {
     const messageSnapshot = event.data;
     if (!messageSnapshot) {
@@ -35,7 +35,7 @@ export const incrementUnreadForMessage = onDocumentCreated(
 
     const senderUid = message.fromUid;
 
-    if (typeof senderUid !== "string" || senderUid.length === 0) {
+    if (typeof senderUid !== 'string' || senderUid.length === 0) {
       return;
     }
 
@@ -57,15 +57,13 @@ export const incrementUnreadForMessage = onDocumentCreated(
     }
 
     const recipientUid = recipientUids[0];
-    await db
-      .doc(`matches/${matchId}/memberStates/${recipientUid}`)
-      .set(
-        {
-          unreadCount: FieldValue.increment(1),
-          updatedAt: FieldValue.serverTimestamp(),
-        },
-        { merge: true }
-      );
+    await db.doc(`matches/${matchId}/memberStates/${recipientUid}`).set(
+      {
+        unreadCount: FieldValue.increment(1),
+        updatedAt: FieldValue.serverTimestamp(),
+      },
+      { merge: true },
+    );
 
     await createNotificationOutboxRecord({
       type: NOTIFICATION_TYPE_MESSAGE_RECEIVED,
@@ -76,5 +74,5 @@ export const incrementUnreadForMessage = onDocumentCreated(
       status: OUTBOX_STATUS_PENDING,
       deliveryProvider: DELIVERY_PROVIDER_NOT_CONFIGURED,
     });
-  }
+  },
 );

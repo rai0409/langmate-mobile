@@ -1,4 +1,4 @@
-import type { MatchScoreResult, Profile } from "./domain";
+import type { MatchScoreResult, Profile } from './domain';
 
 export type RootStackParamList = {
   MainTabs: undefined;

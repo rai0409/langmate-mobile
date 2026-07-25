@@ -1,19 +1,19 @@
-import React from "react";
-import { StyleSheet, Text, View } from "react-native";
-import { colors, radius, spacing } from "../theme/theme";
-import type { Plan } from "../types/domain";
+import React from 'react';
+import { StyleSheet, Text, View } from 'react-native';
+import { colors, radius, spacing } from '../theme/theme';
+import type { Plan } from '../types/domain';
 
 interface PlanBadgeProps {
   plan: Plan;
 }
 
 export function PlanBadge({ plan }: PlanBadgeProps) {
-  const isPremium = plan === "premium";
+  const isPremium = plan === 'premium';
 
   return (
     <View style={[styles.badge, isPremium ? styles.premium : styles.free]}>
       <Text style={[styles.text, isPremium ? styles.premiumText : styles.freeText]}>
-        {isPremium ? "Premium" : "Free"}
+        {isPremium ? 'Premium' : 'Free'}
       </Text>
     </View>
   );
@@ -21,7 +21,7 @@ export function PlanBadge({ plan }: PlanBadgeProps) {
 
 const styles = StyleSheet.create({
   badge: {
-    alignSelf: "flex-start",
+    alignSelf: 'flex-start',
     borderRadius: radius.pill,
     borderWidth: 1,
     paddingHorizontal: spacing.md,
@@ -37,7 +37,7 @@ const styles = StyleSheet.create({
   },
   text: {
     fontSize: 12,
-    fontWeight: "700",
+    fontWeight: '700',
   },
   freeText: {
     color: colors.primary,

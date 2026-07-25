@@ -1,15 +1,15 @@
-import { doc, getDoc } from "firebase/firestore";
-import { DEFAULT_PLAN } from "../config/planLimits";
-import type { Entitlement, Plan } from "../types/domain";
-import { getConfiguredDb } from "./firestoreHelpers";
+import { doc, getDoc } from 'firebase/firestore';
+import { DEFAULT_PLAN } from '../config/planLimits';
+import type { Entitlement, Plan } from '../types/domain';
+import { getConfiguredDb } from './firestoreHelpers';
 
 function isPlan(value: unknown): value is Plan {
-  return value === "free" || value === "premium";
+  return value === 'free' || value === 'premium';
 }
 
 export async function getUserPlan(uid: string): Promise<Plan> {
   try {
-    const snapshot = await getDoc(doc(getConfiguredDb(), "entitlements", uid));
+    const snapshot = await getDoc(doc(getConfiguredDb(), 'entitlements', uid));
     if (!snapshot.exists()) return DEFAULT_PLAN;
 
     const entitlement = snapshot.data() as Partial<Entitlement>;

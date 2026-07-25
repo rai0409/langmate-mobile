@@ -1,6 +1,6 @@
-import React from "react";
-import { StyleSheet, Text, TextInput, View } from "react-native";
-import { colors, radius, spacing, typography } from "../theme/theme";
+import React from 'react';
+import { StyleSheet, Text, TextInput, View } from 'react-native';
+import { colors, radius, spacing, typography } from '../theme/theme';
 
 interface AppTextInputProps {
   label: string;
@@ -10,8 +10,8 @@ interface AppTextInputProps {
   secureTextEntry?: boolean;
   multiline?: boolean;
   error?: string;
-  autoCapitalize?: "none" | "sentences" | "words" | "characters";
-  keyboardType?: "default" | "email-address";
+  autoCapitalize?: 'none' | 'sentences' | 'words' | 'characters';
+  keyboardType?: 'default' | 'email-address';
 }
 
 export function AppTextInput({
@@ -29,11 +29,7 @@ export function AppTextInput({
     <View style={styles.container}>
       <Text style={styles.label}>{label}</Text>
       <TextInput
-        style={[
-          styles.input,
-          multiline && styles.multiline,
-          !!error && styles.inputError,
-        ]}
+        style={[styles.input, multiline && styles.multiline, !!error && styles.inputError]}
         value={value}
         onChangeText={onChangeText}
         placeholder={placeholder}
@@ -54,7 +50,7 @@ const styles = StyleSheet.create({
   },
   label: {
     ...typography.caption,
-    fontWeight: "600",
+    fontWeight: '600',
     marginBottom: spacing.xs,
     color: colors.text,
   },
@@ -69,7 +65,7 @@ const styles = StyleSheet.create({
   },
   multiline: {
     minHeight: 96,
-    textAlignVertical: "top",
+    textAlignVertical: 'top',
   },
   inputError: {
     borderColor: colors.danger,

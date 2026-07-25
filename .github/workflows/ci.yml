@@ -47,6 +47,12 @@ jobs:
       - name: TypeScript check
         run: npm run test:types
 
+      - name: ESLint
+        run: npm run lint
+
+      - name: Prettier check
+        run: npm run format:check
+
   firebase-rules:
     name: Firebase rules
     runs-on: ubuntu-latest

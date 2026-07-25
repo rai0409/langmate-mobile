@@ -1,46 +1,41 @@
-import { useNavigation } from "@react-navigation/native";
-import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import * as ImagePicker from "expo-image-picker";
-import React, { useEffect, useState } from "react";
-import { ScrollView, StyleSheet, Text, View } from "react-native";
-import { AppButton } from "../components/AppButton";
-import { Chip } from "../components/Chip";
-import { PlanBadge } from "../components/PlanBadge";
-import { ProfileAvatar } from "../components/ProfileAvatar";
-import { ProfileCompletenessCard } from "../components/ProfileCompletenessCard";
-import { UpgradeHintCard } from "../components/UpgradeHintCard";
-import {
-  availabilityLabel,
-  learningGoalLabel,
-  levelLabel,
-} from "../constants/options";
-import { useAuth } from "../context/AuthContext";
-import { useCurrentProfile } from "../context/ProfileContext";
-import { getUserPlan } from "../repositories/entitlementRepository";
-import { uploadProfilePhoto } from "../repositories/storageRepository";
-import { colors, radius, spacing, typography } from "../theme/theme";
-import type { Plan } from "../types/domain";
-import type { RootStackParamList } from "../types/navigation";
-import { logAppError } from "../utils/errorLogging";
-import { errorMessage, notify } from "../utils/notify";
+import { useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import * as ImagePicker from 'expo-image-picker';
+import React, { useEffect, useState } from 'react';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { AppButton } from '../components/AppButton';
+import { Chip } from '../components/Chip';
+import { PlanBadge } from '../components/PlanBadge';
+import { ProfileAvatar } from '../components/ProfileAvatar';
+import { ProfileCompletenessCard } from '../components/ProfileCompletenessCard';
+import { UpgradeHintCard } from '../components/UpgradeHintCard';
+import { availabilityLabel, learningGoalLabel, levelLabel } from '../constants/options';
+import { useAuth } from '../context/AuthContext';
+import { useCurrentProfile } from '../context/ProfileContext';
+import { getUserPlan } from '../repositories/entitlementRepository';
+import { uploadProfilePhoto } from '../repositories/storageRepository';
+import { colors, radius, spacing, typography } from '../theme/theme';
+import type { Plan } from '../types/domain';
+import type { RootStackParamList } from '../types/navigation';
+import { logAppError } from '../utils/errorLogging';
+import { errorMessage, notify } from '../utils/notify';
 import {
   formatLanguageList,
   nativeLanguagesForProfile,
   targetLanguagesForProfile,
-} from "../utils/profileLanguages";
+} from '../utils/profileLanguages';
 
 export function ProfileScreen() {
-  const navigation =
-    useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { signOut, currentUser } = useAuth();
   const { profile } = useCurrentProfile();
   const [signingOut, setSigningOut] = useState(false);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
-  const [plan, setPlan] = useState<Plan>("free");
+  const [plan, setPlan] = useState<Plan>('free');
 
   useEffect(() => {
     if (!currentUser) {
-      setPlan("free");
+      setPlan('free');
       return;
     }
     let cancelled = false;
@@ -58,15 +53,15 @@ export function ProfileScreen() {
     try {
       await signOut();
     } catch (e) {
-      logAppError("profile_sign_out_failed", e);
-      notify("Could not sign out", errorMessage(e));
+      logAppError('profile_sign_out_failed', e);
+      notify('Could not sign out', errorMessage(e));
       setSigningOut(false);
     }
   };
 
   const handlePickPhoto = async () => {
     if (!currentUser) {
-      notify("Not signed in", "Please sign in again.");
+      notify('Not signed in', 'Please sign in again.');
       return;
     }
     if (uploadingPhoto) return;
@@ -74,15 +69,12 @@ export function ProfileScreen() {
     try {
       const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (!permission.granted) {
-        notify(
-          "Photo access denied",
-          "Allow photo library access to choose a profile photo."
-        );
+        notify('Photo access denied', 'Allow photo library access to choose a profile photo.');
         return;
       }
 
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ["images"],
+        mediaTypes: ['images'],
         allowsEditing: true,
         aspect: [1, 1],
         quality: 0.75,
@@ -91,43 +83,37 @@ export function ProfileScreen() {
       if (result.canceled) return;
       const asset = result.assets[0];
       if (!asset?.uri) {
-        notify("Could not choose photo", "Please choose a different image.");
+        notify('Could not choose photo', 'Please choose a different image.');
         return;
       }
 
       setUploadingPhoto(true);
       await uploadProfilePhoto(currentUser.uid, asset.uri);
-      notify("Profile photo updated", "Your new photo has been saved.");
+      notify('Profile photo updated', 'Your new photo has been saved.');
     } catch (e) {
-      logAppError("profile_photo_upload_failed", e);
-      notify("Could not update photo", errorMessage(e));
+      logAppError('profile_photo_upload_failed', e);
+      notify('Could not update photo', errorMessage(e));
     } finally {
       setUploadingPhoto(false);
     }
   };
 
   const signedInEmail = currentUser?.email?.trim();
-  const signedInLabel = signedInEmail || "Email unavailable";
-  const signedInUid = currentUser?.uid ?? "Unknown user";
+  const signedInLabel = signedInEmail || 'Email unavailable';
+  const signedInUid = currentUser?.uid ?? 'Unknown user';
 
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
       <View style={styles.header}>
-        <ProfileAvatar
-          profile={profile}
-          name={profile?.displayName ?? "Your profile"}
-          size={96}
-        />
-        <Text style={styles.name}>{profile?.displayName ?? "Your profile"}</Text>
-        {profile?.country ? (
-          <Text style={styles.caption}>{profile.country}</Text>
-        ) : null}
+        <ProfileAvatar profile={profile} name={profile?.displayName ?? 'Your profile'} size={96} />
+        <Text style={styles.name}>{profile?.displayName ?? 'Your profile'}</Text>
+        {profile?.country ? <Text style={styles.caption}>{profile.country}</Text> : null}
         <View style={styles.badgeWrap}>
           <PlanBadge plan={plan} />
         </View>
         <View style={styles.photoAction}>
           <AppButton
-            title={uploadingPhoto ? "Uploading..." : "Change Photo"}
+            title={uploadingPhoto ? 'Uploading...' : 'Change Photo'}
             onPress={handlePickPhoto}
             variant="secondary"
             disabled={signingOut || uploadingPhoto}
@@ -145,16 +131,10 @@ export function ProfileScreen() {
             label="Native language"
             value={formatLanguageList(nativeLanguagesForProfile(profile))}
           />
-          <Row
-            label="Learning"
-            value={formatLanguageList(targetLanguagesForProfile(profile))}
-          />
+          <Row label="Learning" value={formatLanguageList(targetLanguagesForProfile(profile))} />
           <Row label="Level" value={levelLabel(profile.level)} />
           <Row label="Goal" value={learningGoalLabel(profile.learningGoal)} />
-          <Row
-            label="Discoverable"
-            value={profile.isDiscoverable ? "Yes" : "No"}
-          />
+          <Row label="Discoverable" value={profile.isDiscoverable ? 'Yes' : 'No'} />
           <Text style={styles.sectionTitle}>Bio</Text>
           <Text style={typography.body}>{profile.bio}</Text>
           {profile.interests.length > 0 ? (
@@ -182,14 +162,11 @@ export function ProfileScreen() {
         <Text style={styles.caption}>No profile saved yet.</Text>
       )}
 
-      {plan === "free" ? (
+      {plan === 'free' ? (
         <View style={styles.stackGap}>
           <UpgradeHintCard
             onPreview={() =>
-              notify(
-                "Premium coming soon",
-                "Payments are not enabled in this preview build yet."
-              )
+              notify('Premium coming soon', 'Payments are not enabled in this preview build yet.')
             }
           />
         </View>
@@ -205,15 +182,20 @@ export function ProfileScreen() {
       <View style={styles.actions}>
         <AppButton
           title="Edit Profile"
-          onPress={() => navigation.navigate("EditProfile")}
+          onPress={() => navigation.navigate('EditProfile')}
           variant="secondary"
           disabled={signingOut}
         />
         <View style={styles.gap} />
-        <AppButton title="Delete Account" onPress={() => navigation.navigate("AccountDeletion")} variant="danger" disabled={signingOut} />
+        <AppButton
+          title="Delete Account"
+          onPress={() => navigation.navigate('AccountDeletion')}
+          variant="danger"
+          disabled={signingOut}
+        />
         <View style={styles.gap} />
         <AppButton
-          title={signingOut ? "Signing out..." : "Logout"}
+          title={signingOut ? 'Signing out...' : 'Logout'}
           onPress={handleSignOut}
           variant="danger"
           disabled={signingOut}
@@ -241,7 +223,7 @@ const styles = StyleSheet.create({
     padding: spacing.xl,
   },
   header: {
-    alignItems: "center",
+    alignItems: 'center',
     marginBottom: spacing.xl,
   },
   name: {
@@ -277,18 +259,18 @@ const styles = StyleSheet.create({
   },
   sessionTitle: {
     ...typography.caption,
-    fontWeight: "700",
-    textTransform: "uppercase",
+    fontWeight: '700',
+    textTransform: 'uppercase',
     marginBottom: spacing.xs,
   },
   sessionEmail: {
     ...typography.body,
-    fontWeight: "700",
+    fontWeight: '700',
     marginBottom: spacing.md,
   },
   uidLabel: {
     ...typography.caption,
-    fontWeight: "700",
+    fontWeight: '700',
     marginBottom: spacing.xs,
   },
   uidValue: {
@@ -298,8 +280,8 @@ const styles = StyleSheet.create({
     marginBottom: spacing.lg,
   },
   row: {
-    flexDirection: "row",
-    justifyContent: "space-between",
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     marginBottom: spacing.sm,
   },
   rowLabel: {
@@ -307,18 +289,18 @@ const styles = StyleSheet.create({
   },
   rowValue: {
     ...typography.body,
-    fontWeight: "600",
+    fontWeight: '600',
   },
   sectionTitle: {
     ...typography.caption,
-    fontWeight: "700",
-    textTransform: "uppercase",
+    fontWeight: '700',
+    textTransform: 'uppercase',
     marginTop: spacing.md,
     marginBottom: spacing.xs,
   },
   chipRow: {
-    flexDirection: "row",
-    flexWrap: "wrap",
+    flexDirection: 'row',
+    flexWrap: 'wrap',
   },
   actions: {
     marginTop: spacing.xl,

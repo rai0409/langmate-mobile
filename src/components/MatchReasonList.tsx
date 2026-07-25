@@ -1,16 +1,13 @@
-import React from "react";
-import { StyleSheet, Text, View } from "react-native";
-import { colors, spacing, typography } from "../theme/theme";
+import React from 'react';
+import { StyleSheet, Text, View } from 'react-native';
+import { colors, spacing, typography } from '../theme/theme';
 
 interface MatchReasonListProps {
   reasons: string[];
   missingFields: string[];
 }
 
-export function MatchReasonList({
-  reasons,
-  missingFields,
-}: MatchReasonListProps) {
+export function MatchReasonList({ reasons, missingFields }: MatchReasonListProps) {
   return (
     <View>
       {reasons.map((reason) => (
@@ -20,9 +17,7 @@ export function MatchReasonList({
         </View>
       ))}
       {missingFields.length > 0 ? (
-        <Text style={styles.note}>
-          More profile details are needed for a stronger match score.
-        </Text>
+        <Text style={styles.note}>More profile details are needed for a stronger match score.</Text>
       ) : null}
     </View>
   );
@@ -30,7 +25,7 @@ export function MatchReasonList({
 
 const styles = StyleSheet.create({
   row: {
-    flexDirection: "row",
+    flexDirection: 'row',
     marginBottom: spacing.xs,
   },
   bullet: {
@@ -44,7 +39,7 @@ const styles = StyleSheet.create({
   },
   note: {
     ...typography.caption,
-    fontStyle: "italic",
+    fontStyle: 'italic',
     marginTop: spacing.xs,
   },
 });

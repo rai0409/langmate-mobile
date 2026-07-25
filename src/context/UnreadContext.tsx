@@ -1,15 +1,9 @@
-import React, {
-  createContext,
-  useContext,
-  useEffect,
-  useMemo,
-  useState,
-} from "react";
-import { hasFirebaseConfig } from "../firebase/config";
-import { listenMatchesForUser } from "../repositories/matchRepository";
-import { listenMemberState } from "../repositories/memberStateRepository";
-import { logDevError } from "../utils/logging";
-import { useAuth } from "./AuthContext";
+import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import { hasFirebaseConfig } from '../firebase/config';
+import { listenMatchesForUser } from '../repositories/matchRepository';
+import { listenMemberState } from '../repositories/memberStateRepository';
+import { logDevError } from '../utils/logging';
+import { useAuth } from './AuthContext';
 
 interface UnreadContextValue {
   totalUnreadCount: number;
@@ -55,15 +49,15 @@ export function UnreadProvider({ children }: { children: React.ReactNode }) {
               }));
             },
             (error) => {
-              logDevError("UnreadProvider.listenMemberState", error);
-            }
+              logDevError('UnreadProvider.listenMemberState', error);
+            },
           );
           memberStateUnsubscribes.set(match.matchId, unsubscribe);
         }
       },
       (error) => {
-        logDevError("UnreadProvider.listenMatches", error);
-      }
+        logDevError('UnreadProvider.listenMatches', error);
+      },
     );
 
     return () => {
@@ -76,25 +70,20 @@ export function UnreadProvider({ children }: { children: React.ReactNode }) {
     () =>
       Object.values(unreadByMatch).reduce(
         (total, unreadCount) => total + Math.max(0, unreadCount),
-        0
+        0,
       ),
-    [unreadByMatch]
+    [unreadByMatch],
   );
 
-  const value = useMemo(
-    () => ({ totalUnreadCount }),
-    [totalUnreadCount]
-  );
+  const value = useMemo(() => ({ totalUnreadCount }), [totalUnreadCount]);
 
-  return (
-    <UnreadContext.Provider value={value}>{children}</UnreadContext.Provider>
-  );
+  return <UnreadContext.Provider value={value}>{children}</UnreadContext.Provider>;
 }
 
 export function useUnreadCounts(): UnreadContextValue {
   const context = useContext(UnreadContext);
   if (!context) {
-    throw new Error("useUnreadCounts must be used inside an UnreadProvider");
+    throw new Error('useUnreadCounts must be used inside an UnreadProvider');
   }
   return context;
 }

@@ -1,4 +1,4 @@
-import type { Plan } from "../types/domain";
+import type { Plan } from '../types/domain';
 
 export interface PlanLimits {
   nativeLanguages: number;
@@ -7,7 +7,7 @@ export interface PlanLimits {
   profilePhotos: number;
 }
 
-export const DEFAULT_PLAN: Plan = "free";
+export const DEFAULT_PLAN: Plan = 'free';
 
 export const PLAN_LIMITS: Record<Plan, PlanLimits> = {
   free: {

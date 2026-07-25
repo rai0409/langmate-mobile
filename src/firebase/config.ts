@@ -1,10 +1,10 @@
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import { getApps, initializeApp, type FirebaseApp } from "firebase/app";
-import * as FirebaseAuth from "firebase/auth";
-import type { Auth, Persistence } from "firebase/auth";
-import { getFirestore, type Firestore } from "firebase/firestore";
-import { getStorage, type FirebaseStorage } from "firebase/storage";
-import { Platform } from "react-native";
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { getApps, initializeApp, type FirebaseApp } from 'firebase/app';
+import * as FirebaseAuth from 'firebase/auth';
+import type { Auth, Persistence } from 'firebase/auth';
+import { getFirestore, type Firestore } from 'firebase/firestore';
+import { getStorage, type FirebaseStorage } from 'firebase/storage';
+import { Platform } from 'react-native';
 
 // EXPO_PUBLIC_* vars must be referenced with static dot notation so the
 // Expo bundler can inline them.
@@ -20,9 +20,9 @@ const firebaseConfig = {
 export function hasFirebaseConfig(): boolean {
   return Boolean(
     firebaseConfig.apiKey &&
-      firebaseConfig.authDomain &&
-      firebaseConfig.projectId &&
-      firebaseConfig.appId
+    firebaseConfig.authDomain &&
+    firebaseConfig.projectId &&
+    firebaseConfig.appId,
   );
 }
 
@@ -36,16 +36,14 @@ const firebaseAuthWithReactNativePersistence = FirebaseAuth as typeof FirebaseAu
 };
 
 function initializeFirebaseAuth(app: FirebaseApp): Auth {
-  if (Platform.OS === "web") {
+  if (Platform.OS === 'web') {
     return FirebaseAuth.getAuth(app);
   }
 
   const getReactNativePersistence =
     firebaseAuthWithReactNativePersistence.getReactNativePersistence;
   if (!getReactNativePersistence) {
-    throw new Error(
-      "Firebase Auth React Native persistence is unavailable in this runtime."
-    );
+    throw new Error('Firebase Auth React Native persistence is unavailable in this runtime.');
   }
 
   try {
@@ -78,7 +76,7 @@ export { firebaseApp, auth, db, storage };
 export function requireAuth(): Auth {
   if (!auth) {
     throw new Error(
-      "Firebase is not configured. Copy .env.example to .env and fill in your Firebase settings."
+      'Firebase is not configured. Copy .env.example to .env and fill in your Firebase settings.',
     );
   }
   return auth;
@@ -87,7 +85,7 @@ export function requireAuth(): Auth {
 export function requireDb(): Firestore {
   if (!db) {
     throw new Error(
-      "Firebase is not configured. Copy .env.example to .env and fill in your Firebase settings."
+      'Firebase is not configured. Copy .env.example to .env and fill in your Firebase settings.',
     );
   }
   return db;
@@ -96,7 +94,7 @@ export function requireDb(): Firestore {
 export function requireStorage(): FirebaseStorage {
   if (!storage) {
     throw new Error(
-      "Firebase is not configured. Copy .env.example to .env and fill in your Firebase settings."
+      'Firebase is not configured. Copy .env.example to .env and fill in your Firebase settings.',
     );
   }
   return storage;

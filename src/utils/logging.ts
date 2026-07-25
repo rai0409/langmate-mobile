@@ -1,4 +1,4 @@
-import { logAppError } from "./errorLogging";
+import { logAppError } from './errorLogging';
 
 /**
  * Development-only error logging. Emits a sanitized diagnostic object with a

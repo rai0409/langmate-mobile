@@ -1,8 +1,8 @@
-import React from "react";
-import { Pressable, StyleSheet, Text } from "react-native";
-import { colors, radius, spacing, typography } from "../theme/theme";
+import React from 'react';
+import { Pressable, StyleSheet, Text } from 'react-native';
+import { colors, radius, spacing, typography } from '../theme/theme';
 
-type Variant = "primary" | "secondary" | "danger" | "ghost";
+type Variant = 'primary' | 'secondary' | 'danger' | 'ghost';
 
 interface AppButtonProps {
   title: string;
@@ -11,12 +11,7 @@ interface AppButtonProps {
   disabled?: boolean;
 }
 
-export function AppButton({
-  title,
-  onPress,
-  variant = "primary",
-  disabled,
-}: AppButtonProps) {
+export function AppButton({ title, onPress, variant = 'primary', disabled }: AppButtonProps) {
   return (
     <Pressable
       onPress={onPress}
@@ -38,8 +33,8 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.md,
     paddingHorizontal: spacing.lg,
     borderRadius: radius.md,
-    alignItems: "center",
-    justifyContent: "center",
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   primary: {
     backgroundColor: colors.primary,
@@ -53,7 +48,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.danger,
   },
   ghost: {
-    backgroundColor: "transparent",
+    backgroundColor: 'transparent',
   },
   pressed: {
     opacity: 0.75,
@@ -67,8 +62,8 @@ const styles = StyleSheet.create({
 });
 
 const textStyles = StyleSheet.create({
-  primary: { color: "#FFFFFF" },
+  primary: { color: '#FFFFFF' },
   secondary: { color: colors.primary },
-  danger: { color: "#FFFFFF" },
+  danger: { color: '#FFFFFF' },
   ghost: { color: colors.primary },
 });

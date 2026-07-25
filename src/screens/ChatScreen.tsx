@@ -1,5 +1,5 @@
-import type { NativeStackScreenProps } from "@react-navigation/native-stack";
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   FlatList,
   KeyboardAvoidingView,
@@ -9,54 +9,44 @@ import {
   Text,
   TextInput,
   View,
-} from "react-native";
-import { LearningSupportBar } from "../components/LearningSupportBar";
-import { ProfileAvatar } from "../components/ProfileAvatar";
-import { useAuth } from "../context/AuthContext";
-import { useCurrentProfile } from "../context/ProfileContext";
-import { hasFirebaseConfig } from "../firebase/config";
-import { getMatch } from "../repositories/matchRepository";
-import { markMatchRead } from "../repositories/memberStateRepository";
-import {
-  listenMessages,
-  sendMessage,
-} from "../repositories/messageRepository";
-import { getProfile } from "../repositories/profileRepository";
-import {
-  isUidBlocked,
-  listenBlocksForUser,
-  toBlockSets,
-} from "../repositories/safetyRepository";
-import { calculateMatchScore } from "../services/matchingService";
-import { colors, radius, spacing, typography } from "../theme/theme";
-import type { ChatMessage, Profile } from "../types/domain";
-import type { RootStackParamList } from "../types/navigation";
-import { getErrorMessage } from "../utils/errorMessage";
-import { logDevError } from "../utils/logging";
-import { notify } from "../utils/notify";
+} from 'react-native';
+import { LearningSupportBar } from '../components/LearningSupportBar';
+import { ProfileAvatar } from '../components/ProfileAvatar';
+import { useAuth } from '../context/AuthContext';
+import { useCurrentProfile } from '../context/ProfileContext';
+import { hasFirebaseConfig } from '../firebase/config';
+import { getMatch } from '../repositories/matchRepository';
+import { markMatchRead } from '../repositories/memberStateRepository';
+import { listenMessages, sendMessage } from '../repositories/messageRepository';
+import { getProfile } from '../repositories/profileRepository';
+import { isUidBlocked, listenBlocksForUser, toBlockSets } from '../repositories/safetyRepository';
+import { calculateMatchScore } from '../services/matchingService';
+import { colors, radius, spacing, typography } from '../theme/theme';
+import type { ChatMessage, Profile } from '../types/domain';
+import type { RootStackParamList } from '../types/navigation';
+import { getErrorMessage } from '../utils/errorMessage';
+import { logDevError } from '../utils/logging';
+import { notify } from '../utils/notify';
 
-type Props = NativeStackScreenProps<RootStackParamList, "Chat">;
+type Props = NativeStackScreenProps<RootStackParamList, 'Chat'>;
 
 export function ChatScreen({ route, navigation }: Props) {
   const { matchId, partnerName: routePartnerName } = route.params;
   const { currentUser } = useAuth();
   const { profile: currentProfile } = useCurrentProfile();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [draft, setDraft] = useState("");
+  const [draft, setDraft] = useState('');
   const [supportNote, setSupportNote] = useState<string | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [sendError, setSendError] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
   const [partnerUid, setPartnerUid] = useState<string | null>(null);
   const [partnerProfile, setPartnerProfile] = useState<Profile | null>(null);
-  const [partnerProfileError, setPartnerProfileError] = useState<string | null>(
-    null
-  );
+  const [partnerProfileError, setPartnerProfileError] = useState<string | null>(null);
   const [blockedMessage, setBlockedMessage] = useState<string | null>(null);
   const listRef = useRef<FlatList<ChatMessage>>(null);
 
-  const partnerName =
-    partnerProfile?.displayName ?? routePartnerName ?? "Language partner";
+  const partnerName = partnerProfile?.displayName ?? routePartnerName ?? 'Language partner';
 
   useEffect(() => {
     if (!hasFirebaseConfig()) return;
@@ -67,11 +57,9 @@ export function ChatScreen({ route, navigation }: Props) {
         setLoadError(null);
       },
       (error) => {
-        logDevError("ChatScreen.listenMessages", error);
-        setLoadError(
-          "Could not load messages. Check your connection and reopen this chat."
-        );
-      }
+        logDevError('ChatScreen.listenMessages', error);
+        setLoadError('Could not load messages. Check your connection and reopen this chat.');
+      },
     );
     return unsubscribe;
   }, [matchId]);
@@ -79,7 +67,7 @@ export function ChatScreen({ route, navigation }: Props) {
   useEffect(() => {
     if (!currentUser || !hasFirebaseConfig()) return;
     markMatchRead(matchId, currentUser.uid).catch((error) => {
-      logDevError("ChatScreen.markMatchRead", error);
+      logDevError('ChatScreen.markMatchRead', error);
     });
   }, [currentUser, matchId, messages.length]);
 
@@ -89,29 +77,26 @@ export function ChatScreen({ route, navigation }: Props) {
     (async () => {
       try {
         const match = await getMatch(matchId);
-        const otherUid =
-          match?.memberUids.find((uid) => uid !== currentUser.uid) ?? null;
+        const otherUid = match?.memberUids.find((uid) => uid !== currentUser.uid) ?? null;
         if (cancelled) return;
         setPartnerUid(otherUid);
         if (!match || !otherUid) {
           setPartnerProfile(null);
-          setPartnerProfileError("Could not load this chat partner.");
+          setPartnerProfileError('Could not load this chat partner.');
           return;
         }
         if (otherUid === currentUser.uid) {
           setPartnerProfile(null);
-          setPartnerProfileError("This chat does not have another profile to show.");
+          setPartnerProfileError('This chat does not have another profile to show.');
           return;
         }
         const profile = await getProfile(otherUid);
         if (cancelled) return;
         setPartnerProfile(profile);
-        setPartnerProfileError(
-          profile ? null : "Could not load this chat partner's profile."
-        );
+        setPartnerProfileError(profile ? null : "Could not load this chat partner's profile.");
       } catch (e) {
         if (cancelled) return;
-        logDevError("ChatScreen.partnerProfile", e);
+        logDevError('ChatScreen.partnerProfile', e);
         setPartnerUid(null);
         setPartnerProfile(null);
         setPartnerProfileError("Could not load this chat partner's profile.");
@@ -132,42 +117,38 @@ export function ChatScreen({ route, navigation }: Props) {
       (blocks) => {
         const blockSets = toBlockSets(currentUser.uid, blocks);
         if (blockSets.blockedByMe.has(partnerUid)) {
-          setBlockedMessage(
-            "Messaging is disabled for this match. You blocked this user."
-          );
+          setBlockedMessage('Messaging is disabled for this match. You blocked this user.');
         } else if (blockSets.blockedMe.has(partnerUid)) {
-          setBlockedMessage(
-            "Messaging is disabled for this match. This user blocked you."
-          );
+          setBlockedMessage('Messaging is disabled for this match. This user blocked you.');
         } else if (isUidBlocked(blockSets, partnerUid)) {
-          setBlockedMessage("Messaging is disabled for this match.");
+          setBlockedMessage('Messaging is disabled for this match.');
         } else {
           setBlockedMessage(null);
         }
       },
       (error) => {
-        logDevError("ChatScreen.listenBlocks", error);
+        logDevError('ChatScreen.listenBlocks', error);
         setBlockedMessage(
-          "Messaging is disabled for this match. Could not verify block status until you reopen this chat."
+          'Messaging is disabled for this match. Could not verify block status until you reopen this chat.',
         );
-      }
+      },
     );
     return unsubscribe;
   }, [currentUser, partnerUid]);
 
   const openPartnerProfile = useCallback(() => {
     if (!currentProfile) {
-      notify("Profile unavailable", "Please reopen this chat and try again.");
+      notify('Profile unavailable', 'Please reopen this chat and try again.');
       return;
     }
     if (!partnerProfile || !partnerUid || partnerUid === currentUser?.uid) {
       notify(
-        "Profile unavailable",
-        partnerProfileError ?? "We could not load this partner's profile."
+        'Profile unavailable',
+        partnerProfileError ?? "We could not load this partner's profile.",
       );
       return;
     }
-    navigation.navigate("UserDetail", {
+    navigation.navigate('UserDetail', {
       profile: partnerProfile,
       scoreResult: calculateMatchScore(currentProfile, partnerProfile),
     });
@@ -189,11 +170,7 @@ export function ChatScreen({ route, navigation }: Props) {
           disabled={!partnerProfile}
         >
           <View style={styles.headerAvatarWrap}>
-            <ProfileAvatar
-              profile={partnerProfile}
-              name={partnerName}
-              size={28}
-            />
+            <ProfileAvatar profile={partnerProfile} name={partnerName} size={28} />
           </View>
           <Text style={styles.headerName} numberOfLines={1}>
             {partnerName}
@@ -205,17 +182,17 @@ export function ChatScreen({ route, navigation }: Props) {
 
   const send = async () => {
     if (!currentUser) {
-      notify("Not signed in", "Please sign in again.");
+      notify('Not signed in', 'Please sign in again.');
       return;
     }
     if (blockedMessage) {
-      notify("Messaging disabled", blockedMessage);
+      notify('Messaging disabled', blockedMessage);
       return;
     }
     if (sending) return;
     const text = draft.trim();
     if (!text) {
-      setSendError("Write a message before sending.");
+      setSendError('Write a message before sending.');
       return;
     }
     setSending(true);
@@ -223,12 +200,12 @@ export function ChatScreen({ route, navigation }: Props) {
     try {
       // fromUid is always the real authenticated uid — never a placeholder.
       await sendMessage(matchId, currentUser.uid, text);
-      setDraft("");
+      setDraft('');
     } catch (e) {
-      logDevError("ChatScreen.send", e);
+      logDevError('ChatScreen.send', e);
       const message = getErrorMessage(e);
       setSendError(message);
-      notify("Could not send message", message);
+      notify('Could not send message', message);
     } finally {
       setSending(false);
     }
@@ -239,8 +216,8 @@ export function ChatScreen({ route, navigation }: Props) {
   return (
     <KeyboardAvoidingView
       style={styles.screen}
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
-      keyboardVerticalOffset={Platform.OS === "ios" ? 88 : 0}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 88 : 0}
     >
       <FlatList
         ref={listRef}
@@ -248,21 +225,12 @@ export function ChatScreen({ route, navigation }: Props) {
         contentContainerStyle={styles.listContent}
         data={messages}
         keyExtractor={(item, index) => item.id ?? String(index)}
-        onContentSizeChange={() =>
-          listRef.current?.scrollToEnd({ animated: false })
-        }
+        onContentSizeChange={() => listRef.current?.scrollToEnd({ animated: false })}
         renderItem={({ item }) => {
           const isMine = item.fromUid === currentUser?.uid;
           return (
-            <View
-              style={[
-                styles.bubble,
-                isMine ? styles.bubbleMine : styles.bubbleTheirs,
-              ]}
-            >
-              <Text style={isMine ? styles.textMine : styles.textTheirs}>
-                {item.text}
-              </Text>
+            <View style={[styles.bubble, isMine ? styles.bubbleMine : styles.bubbleTheirs]}>
+              <Text style={isMine ? styles.textMine : styles.textTheirs}>{item.text}</Text>
             </View>
           );
         }}
@@ -283,9 +251,7 @@ export function ChatScreen({ route, navigation }: Props) {
       />
 
       {loadError ? <Text style={styles.loadError}>{loadError}</Text> : null}
-      {partnerProfileError ? (
-        <Text style={styles.loadError}>{partnerProfileError}</Text>
-      ) : null}
+      {partnerProfileError ? <Text style={styles.loadError}>{partnerProfileError}</Text> : null}
       {blockedMessage ? (
         <View style={styles.blockedNotice}>
           <Text style={styles.blockedNoticeText}>{blockedMessage}</Text>
@@ -303,18 +269,13 @@ export function ChatScreen({ route, navigation }: Props) {
       <View style={styles.inputArea}>
         <LearningSupportBar
           onTranslate={() =>
-            setSupportNote(
-              "Translation preview will appear here. Real AI is not connected yet."
-            )
+            setSupportNote('Translation preview will appear here. Real AI is not connected yet.')
           }
           onCorrect={() =>
-            setSupportNote(
-              "Correction preview will appear here. Real AI is not connected yet."
-            )
+            setSupportNote('Correction preview will appear here. Real AI is not connected yet.')
           }
           onSuggestReply={() =>
-            !inputDisabled &&
-            setDraft("That sounds interesting! Could you tell me more?")
+            !inputDisabled && setDraft('That sounds interesting! Could you tell me more?')
           }
         />
         <View style={styles.inputRow}>
@@ -323,7 +284,7 @@ export function ChatScreen({ route, navigation }: Props) {
             value={draft}
             onChangeText={setDraft}
             editable={!inputDisabled}
-            placeholder={blockedMessage ? "Messaging is disabled" : "Write a message..."}
+            placeholder={blockedMessage ? 'Messaging is disabled' : 'Write a message...'}
             placeholderTextColor={colors.textMuted}
             multiline
           />
@@ -336,7 +297,7 @@ export function ChatScreen({ route, navigation }: Props) {
               inputDisabled && styles.sendDisabled,
             ]}
           >
-            <Text style={styles.sendText}>{sending ? "Sending..." : "Send"}</Text>
+            <Text style={styles.sendText}>{sending ? 'Sending...' : 'Send'}</Text>
           </Pressable>
         </View>
       </View>
@@ -358,8 +319,8 @@ const styles = StyleSheet.create({
   },
   headerProfile: {
     maxWidth: 240,
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   headerAvatarWrap: {
     marginRight: spacing.sm,
@@ -370,7 +331,7 @@ const styles = StyleSheet.create({
     maxWidth: 190,
   },
   emptyCard: {
-    alignSelf: "stretch",
+    alignSelf: 'stretch',
     backgroundColor: colors.surface,
     borderWidth: 1,
     borderColor: colors.border,
@@ -381,13 +342,13 @@ const styles = StyleSheet.create({
   emptyTitle: {
     ...typography.subtitle,
     fontSize: 16,
-    textAlign: "center",
+    textAlign: 'center',
     marginBottom: spacing.xs,
   },
   emptyText: {
     ...typography.body,
     color: colors.textMuted,
-    textAlign: "center",
+    textAlign: 'center',
     marginBottom: spacing.md,
   },
   starterText: {
@@ -398,25 +359,25 @@ const styles = StyleSheet.create({
     marginTop: spacing.sm,
   },
   bubble: {
-    maxWidth: "80%",
+    maxWidth: '80%',
     borderRadius: radius.lg,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
     marginBottom: spacing.sm,
   },
   bubbleMine: {
-    alignSelf: "flex-end",
+    alignSelf: 'flex-end',
     backgroundColor: colors.primary,
   },
   bubbleTheirs: {
-    alignSelf: "flex-start",
+    alignSelf: 'flex-start',
     backgroundColor: colors.surface,
     borderWidth: 1,
     borderColor: colors.border,
   },
   textMine: {
     ...typography.body,
-    color: "#FFFFFF",
+    color: '#FFFFFF',
   },
   textTheirs: {
     ...typography.body,
@@ -460,8 +421,8 @@ const styles = StyleSheet.create({
     borderTopColor: colors.border,
   },
   inputRow: {
-    flexDirection: "row",
-    alignItems: "flex-end",
+    flexDirection: 'row',
+    alignItems: 'flex-end',
     gap: spacing.sm,
   },
   input: {
@@ -493,6 +454,6 @@ const styles = StyleSheet.create({
   },
   sendText: {
     ...typography.button,
-    color: "#FFFFFF",
+    color: '#FFFFFF',
   },
 });
