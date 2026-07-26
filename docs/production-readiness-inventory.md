@@ -204,8 +204,11 @@ or deterministic CI command; it does **not** mean verified in production.
 - NOT IMPLEMENTED: Storage Rules deployment configuration. Only
   `storage.rules.example` exists; `firebase.json` references only Firestore
   Rules and Functions source.
-- NOT IMPLEMENTED: Staging/production Firebase environment separation and
-  deploy promotion/rollback configuration.
+- PARTIALLY VERIFIED: Repository-level Firebase environment foundation exists:
+  explicit client environment validation, `.firebaserc.example`, and a
+  fail-closed staging/production deploy preflight.
+  - Missing evidence: project creation, deploy, IAM, billing, secret setup,
+    smoke test, rollback procedure, and production readiness remain incomplete.
 - NOT IMPLEMENTED: Production moderation console/workflow, admin custom claims
   implementation, admin MFA evidence, appeals, moderator notes, evidence
   retention policy, or user enforcement notifications.
