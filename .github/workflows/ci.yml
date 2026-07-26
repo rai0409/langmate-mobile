@@ -53,6 +53,9 @@ jobs:
       - name: Prettier check
         run: npm run format:check
 
+      - name: Firebase deploy preflight unit tests
+        run: npm run test:firebase-preflight
+
   firebase-rules:
     name: Firebase rules
     runs-on: ubuntu-latest

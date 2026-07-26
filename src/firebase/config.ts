@@ -17,13 +17,53 @@ const firebaseConfig = {
   appId: process.env.EXPO_PUBLIC_FIREBASE_APP_ID,
 };
 
+const appEnvironment = process.env.EXPO_PUBLIC_APP_ENV;
+const productionProjectId = process.env.EXPO_PUBLIC_PRODUCTION_FIREBASE_PROJECT_ID;
+const VALID_APP_ENVIRONMENTS = ['local', 'staging', 'production'] as const;
+type AppEnvironment = (typeof VALID_APP_ENVIRONMENTS)[number];
+
+function isAppEnvironment(value: string | undefined): value is AppEnvironment {
+  return VALID_APP_ENVIRONMENTS.includes(value as AppEnvironment);
+}
+
+function firebaseConfigError(): string | null {
+  if (!isAppEnvironment(appEnvironment)) return 'Firebase environment is missing or invalid.';
+  if (
+    !firebaseConfig.apiKey ||
+    !firebaseConfig.authDomain ||
+    !firebaseConfig.projectId ||
+    !firebaseConfig.storageBucket ||
+    !firebaseConfig.messagingSenderId ||
+    !firebaseConfig.appId
+  ) {
+    return 'Firebase public configuration is incomplete.';
+  }
+  if (
+    appEnvironment === 'production' &&
+    /(^|[-_])(demo|example|test)([-_]|$)/i.test(firebaseConfig.projectId)
+  ) {
+    return 'Production Firebase configuration uses a reserved demo project identifier.';
+  }
+  if (
+    appEnvironment === 'staging' &&
+    productionProjectId &&
+    firebaseConfig.projectId === productionProjectId
+  ) {
+    return 'Staging Firebase configuration matches the declared production project.';
+  }
+  return null;
+}
+
+export function getFirebaseConfigurationError(): string | null {
+  return firebaseConfigError();
+}
+
+export function getAppEnvironment(): AppEnvironment | null {
+  return isAppEnvironment(appEnvironment) ? appEnvironment : null;
+}
+
 export function hasFirebaseConfig(): boolean {
-  return Boolean(
-    firebaseConfig.apiKey &&
-    firebaseConfig.authDomain &&
-    firebaseConfig.projectId &&
-    firebaseConfig.appId,
-  );
+  return firebaseConfigError() === null;
 }
 
 let firebaseApp: FirebaseApp | null = null;
