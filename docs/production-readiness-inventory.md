@@ -201,9 +201,10 @@ or deterministic CI command; it does **not** mean verified in production.
 - NOT IMPLEMENTED: App Check, Crashlytics, Analytics, Remote Config, Firebase
   Cloud Messaging configuration, and production Firebase secret configuration.
   Evidence: no matching configuration or source integration in the repository.
-- NOT IMPLEMENTED: Storage Rules deployment configuration. Only
-  `storage.rules.example` exists; `firebase.json` references only Firestore
-  Rules and Functions source.
+- PARTIALLY VERIFIED: Formal `storage.rules`, Storage Emulator configuration,
+  Storage Rules tests, and CI coverage are repository-managed.
+  - Missing evidence: staging/production deployment, real bucket validation,
+    App Check, image scanning, upload-abuse controls, and production readiness.
 - PARTIALLY VERIFIED: Repository-level Firebase environment foundation exists:
   explicit client environment validation, `.firebaserc.example`, and a
   fail-closed staging/production deploy preflight.
