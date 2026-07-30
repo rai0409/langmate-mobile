@@ -29,3 +29,13 @@ valid non-placeholder aliases, an active matching Firebase CLI project, clean
 Git state, and `HEAD == origin/main`. Production additionally requires the
 fixed confirmation token. This change does not create projects, configure
 secrets, deploy, or define rollback; rollback is a separate responsibility.
+
+## Storage Rules
+
+`storage.rules` is the formal Firebase Storage Rules deploy target. It protects
+the authenticated profile-photo path `profilePhotos/{uid}/avatar.jpg`: any
+authenticated user may read, while only the path owner may create, update, or
+delete. Uploads must be non-empty JPEG files no larger than 5 MiB.
+
+Run `npm run test:storage-rules` before a production Storage Rules deploy. This
+repository change does not deploy Storage Rules or use a real Firebase project.

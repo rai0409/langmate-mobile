@@ -87,6 +87,9 @@ jobs:
       - name: Firestore rules tests
         run: npm run test:rules
 
+      - name: Storage rules tests
+        run: npm run test:storage-rules
+
   functions-unit:
     name: Functions unit tests
     runs-on: ubuntu-latest

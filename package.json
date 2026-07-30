@@ -52,6 +52,8 @@
     "firebase:preflight:production": "node scripts/firebase_deploy_preflight.mjs production",
     "test:firebase-preflight": "node scripts/firebase_deploy_preflight.test.mjs",
     "test:rules": "firebase emulators:exec --only firestore --project demo-langmate \"node rules-tests/firestore.test.mjs\"",
+    "test:storage-rules": "firebase emulators:exec --only storage --project demo-langmate \"node rules-tests/storage.test.mjs\"",
+    "test:firebase-rules": "npm run test:rules && npm run test:storage-rules",
     "test:functions:unread": "npm --prefix functions run build && firebase emulators:exec --only firestore,functions --project demo-langmate \"node scripts/functions_unread_e2e.mjs\"",
     "test:functions:match": "npm --prefix functions run build && firebase emulators:exec --only firestore,functions --project demo-langmate \"node scripts/functions_match_creation_e2e.mjs\"",
     "test:functions:push": "npm --prefix functions run build && PUSH_PROVIDER=fake firebase emulators:exec --only firestore,functions --project demo-langmate \"node scripts/functions_push_e2e.mjs\"",
