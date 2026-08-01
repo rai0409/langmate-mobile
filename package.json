@@ -54,6 +54,8 @@
     "firebase:preflight:staging": "node scripts/firebase_deploy_preflight.mjs staging",
     "firebase:preflight:production": "node scripts/firebase_deploy_preflight.mjs production",
     "test:firebase-preflight": "node scripts/firebase_deploy_preflight.test.mjs",
+    "firebase:deploy:staging": "node scripts/firebase_deploy_staging.mjs",
+    "test:firebase-deploy-staging": "node scripts/firebase_deploy_staging.test.mjs",
     "test:rules": "firebase emulators:exec --only firestore --project demo-langmate \"node rules-tests/firestore.test.mjs\"",
     "test:storage-rules": "firebase emulators:exec --only storage --project demo-langmate \"node rules-tests/storage.test.mjs\"",
     "test:firebase-rules": "npm run test:rules && npm run test:storage-rules",
