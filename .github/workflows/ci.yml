@@ -56,6 +56,9 @@ jobs:
       - name: Firebase deploy preflight unit tests
         run: npm run test:firebase-preflight
 
+      - name: Staging deploy command unit tests
+        run: npm run test:firebase-deploy-staging
+
   firebase-rules:
     name: Firebase rules
     runs-on: ubuntu-latest
