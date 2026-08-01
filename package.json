@@ -1,6 +1,9 @@
 {
   "name": "langexchange_mobile",
   "version": "1.0.0",
+  "engines": {
+    "node": ">=22 <23"
+  },
   "main": "index.ts",
   "dependencies": {
     "@react-native-async-storage/async-storage": "2.2.0",

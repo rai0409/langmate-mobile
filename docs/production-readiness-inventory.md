@@ -37,7 +37,7 @@ deployment, store approval, or operating process.
   - Result: branch `main`; clean working tree; HEAD and `origin/main` are both
     `6d1f6e6634ac373e4e76774924d00cac92be0ed8`.
 - VERIFIED: Root application is Expo SDK 56 / React Native 0.85 / React 19 /
-  TypeScript 6, with a separate Node 20 Firebase Functions workspace.
+  TypeScript 6, with a separate Node 22 Firebase Functions workspace.
   - Evidence: `package.json`, `functions/package.json`, `functions/tsconfig.json`.
 - VERIFIED: Firebase client initialization reads public Expo environment values
   and configures React Native Auth persistence with AsyncStorage.
