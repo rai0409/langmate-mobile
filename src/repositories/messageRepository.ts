@@ -11,6 +11,7 @@ import {
   writeBatch,
 } from 'firebase/firestore';
 import { USE_SERVER_UNREAD_AUTHORITY } from '../config/unreadAuthority';
+import { MESSAGE_TEXT_MAX } from '../config/inputLimits';
 import { getConfiguredDb } from './firestoreHelpers';
 import { memberStateDocRef } from './memberStateRepository';
 import { isBlockedBetween } from './safetyRepository';
@@ -57,6 +58,9 @@ export async function sendMessage(matchId: string, fromUid: string, text: string
   const trimmed = text.trim();
   if (!trimmed) {
     throw new Error('Message text is empty. Write something before sending.');
+  }
+  if (trimmed.length > MESSAGE_TEXT_MAX) {
+    throw new Error(`Message text must be ${MESSAGE_TEXT_MAX} characters or fewer.`);
   }
   const db = getConfiguredDb();
   const matchSnapshot = await getDoc(doc(db, 'matches', matchId));

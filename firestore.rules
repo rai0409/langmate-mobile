@@ -54,6 +54,35 @@ service cloud.firestore {
     // profiles/{uid} — main profile, always keyed by the auth uid.
     // ----------------------------------------------------------
     match /profiles/{uid} {
+      function validProfile() {
+        return request.resource.data.keys().hasOnly([
+            'uid', 'displayName', 'avatarUrl', 'photoURL', 'photoUpdatedAt',
+            'nativeLang', 'targetLang', 'nativeLangs', 'targetLangs', 'level',
+            'learningGoal', 'interests', 'availableTimes', 'country', 'bio',
+            'isDiscoverable', 'createdAt', 'updatedAt'
+          ])
+          && request.resource.data.uid == uid
+          && request.resource.data.displayName is string
+          && request.resource.data.displayName.size() >= 1
+          && request.resource.data.displayName.size() <= 80
+          && request.resource.data.bio is string
+          && request.resource.data.bio.size() >= 1
+          && request.resource.data.bio.size() <= 1000
+          && request.resource.data.interests is list
+          && request.resource.data.interests.size() <= 10
+          && (!('nativeLangs' in request.resource.data)
+            || (request.resource.data.nativeLangs is list
+              && request.resource.data.nativeLangs.size() >= 1
+              && request.resource.data.nativeLangs.size() <= 2))
+          && (!('targetLangs' in request.resource.data)
+            || (request.resource.data.targetLangs is list
+              && request.resource.data.targetLangs.size() >= 1
+              && request.resource.data.targetLangs.size() <= 3))
+          && (!('createdAt' in request.resource.data)
+            || request.resource.data.createdAt is timestamp)
+          && (!('updatedAt' in request.resource.data)
+            || request.resource.data.updatedAt is timestamp);
+      }
       // Owner reads own profile; any signed-in user reads discoverable ones.
       allow read: if signedIn()
         && (request.auth.uid == uid || resource.data.isDiscoverable == true);
@@ -61,7 +90,7 @@ service cloud.firestore {
       // (covers both create and the merge-based edit-profile update).
       allow create, update: if signedIn()
         && request.auth.uid == uid
-        && request.resource.data.uid == uid;
+        && validProfile();
       allow delete: if false;
     }
 
@@ -77,6 +106,9 @@ service cloud.firestore {
           && request.resource.data.deviceId == deviceId
           && request.resource.data.token is string
           && request.resource.data.token.size() > 0
+          && request.resource.data.token.size() <= 4096
+          && request.resource.data.deviceId.size() > 0
+          && request.resource.data.deviceId.size() <= 128
           && request.resource.data.platform in ['ios', 'android']
           && request.resource.data.enabled is bool;
       }
@@ -102,10 +134,12 @@ service cloud.firestore {
       // Only the swiping user writes; fromUid cannot be spoofed; the doc id
       // must equal fromUid_toUid; action is constrained to the app's values.
       allow create, update: if signedIn()
+        && request.resource.data.keys().hasOnly(['fromUid', 'toUid', 'action', 'createdAt'])
         && request.resource.data.fromUid == request.auth.uid
         && request.resource.data.toUid is string
         && request.resource.data.toUid != request.auth.uid
         && request.resource.data.action in ['connect', 'skip']
+        && request.resource.data.createdAt is timestamp
         && swipeId == request.resource.data.fromUid + '_' + request.resource.data.toUid;
       // The mutual-connect check reads the incoming swipe via get(); that doc
       // may not exist yet, so allow a get on a non-existent swipe (returns
@@ -154,9 +188,12 @@ service cloud.firestore {
         allow read: if isMember(matchMembers());
         // Members create their own messages with non-empty text.
         allow create: if isMember(matchMembers())
+          && request.resource.data.keys().hasOnly(['fromUid', 'text', 'createdAt'])
           && request.resource.data.fromUid == request.auth.uid
           && request.resource.data.text is string
-          && request.resource.data.text.size() > 0;
+          && request.resource.data.text.size() > 0
+          && request.resource.data.text.size() <= 2000
+          && request.resource.data.createdAt is timestamp;
         allow update, delete: if false;
       }
 
@@ -234,10 +271,19 @@ service cloud.firestore {
     // ----------------------------------------------------------
     match /reports/{reportId} {
       allow create: if signedIn()
+        && request.resource.data.keys().hasOnly([
+          'reporterUid', 'reportedUid', 'reason', 'details', 'createdAt'
+        ])
         && request.resource.data.reporterUid == request.auth.uid
         && request.resource.data.reportedUid is string
-        && request.resource.data.reason is string
-        && request.resource.data.reason.size() > 0;
+        && request.resource.data.reportedUid != request.auth.uid
+        && request.resource.data.reason in [
+          'spam', 'harassment', 'inappropriate_content', 'fake_profile', 'other'
+        ]
+        && (!('details' in request.resource.data)
+          || (request.resource.data.details is string
+              && request.resource.data.details.size() <= 2000))
+        && request.resource.data.createdAt is timestamp;
       // Reads/mutations only via admin tooling (Admin SDK bypasses rules).
       allow read, update, delete: if false;
     }
