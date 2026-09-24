@@ -1,6 +1,6 @@
-# LangMate — Language Exchange Matching App
+# Pairchi — Language Exchange Matching App
 
-LangMate is a mobile-first language exchange matching app. Learners create a
+Pairchi is a mobile-first language exchange matching app. Learners create a
 profile with their native and target languages, discover compatible partners
 through reciprocal language matching, connect with each other, and practice
 together in realtime chat with a lightweight learning-support UI.
@@ -265,7 +265,7 @@ Before production deployment, review and deploy Storage rules manually.
 
 ## Security rules
 
-LangMate's production-oriented Firestore security rules live in:
+Pairchi's production-oriented Firestore security rules live in:
 
 ```text
 firestore.rules

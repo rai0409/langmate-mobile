@@ -1,4 +1,4 @@
-# LangMate Privacy Policy Draft
+# Pairchi Privacy Policy Draft
 
 Status: Draft for product planning. Legal review is required before using this
 as a public privacy policy. This document does not claim GDPR, APPI, App Store,
@@ -6,7 +6,7 @@ or Play Store compliance is complete.
 
 ## 日本語サマリー
 
-LangMate は、言語交換パートナーを見つけてチャットするために必要な
+Pairchi は、言語交換パートナーを見つけてチャットするために必要な
 アカウント情報、プロフィール情報、スワイプ、マッチ、メッセージ、
 ブロック、通報、モデレーション関連情報、アカウント削除リクエストを
 扱います。現在のバックエンドは Firebase Authentication と Cloud
@@ -47,7 +47,7 @@ Contact placeholder: privacy@example.invalid
 
 ## Firebase Backend
 
-LangMate uses Firebase Authentication and Cloud Firestore. Firestore security
+Pairchi uses Firebase Authentication and Cloud Firestore. Firestore security
 rules limit normal client access by collection and user identity. Admin SDK,
 Cloud Functions, or a server-side admin workflow are required for production
 moderation and actual account deletion. No Admin SDK credentials are stored in

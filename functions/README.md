@@ -1,4 +1,4 @@
-# LangMate Firebase Functions
+# Pairchi Firebase Functions
 
 This workspace contains trusted backend scaffolding for commercial product
 workflows that should not run in the Expo client.

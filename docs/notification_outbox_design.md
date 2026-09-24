@@ -1,6 +1,6 @@
 # Notification Outbox Design
 
-LangMate uses a notification outbox as a commercial product backend handoff
+Pairchi uses a notification outbox as a commercial product backend handoff
 between user activity and future delivery workers.
 
 ## Collection

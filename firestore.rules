@@ -1,5 +1,5 @@
 // ============================================================
-// LangMate — production-oriented Firestore security rules
+// Pairchi — production-oriented Firestore security rules
 // ============================================================
 // Canonical, deployable rules file. Mirrors the data model written by the
 // repositories in src/repositories/* (the source of truth):

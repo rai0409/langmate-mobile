@@ -1,4 +1,4 @@
-# LangMate Observability / Error Logging Baseline
+# Pairchi Observability / Error Logging Baseline
 
 Status: Local-first baseline for Web/Firebase beta QA. This is not production
 observability and does not add any external monitoring service.

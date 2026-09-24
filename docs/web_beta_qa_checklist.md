@@ -1,6 +1,6 @@
 # Web Beta QA Checklist
 
-Use this checklist for the LangMate PC Web + Firebase backend private-beta path.
+Use this checklist for the Pairchi PC Web + Firebase backend private-beta path.
 Do not record passwords, secrets, tokens, full Firebase config values, or `.env`
 values in notes, screenshots, artifacts, or source code.
 

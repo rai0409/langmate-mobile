@@ -1,11 +1,11 @@
-# LangMate Terms Draft
+# Pairchi Terms Draft
 
 Status: Draft for product planning. Legal review is required before using this
 as public terms. This document does not claim legal compliance is complete.
 
 ## 日本語サマリー
 
-LangMate は、言語交換パートナーを見つけて会話するためのサービスです。
+Pairchi は、言語交換パートナーを見つけて会話するためのサービスです。
 ユーザーは、自分のアカウント、プロフィール、メッセージ、通報やブロック
 の利用について責任を持ちます。嫌がらせ、なりすまし、スパム、違法行為、
 相手の安全を損なう行為は禁止されるべきです。
@@ -18,7 +18,7 @@ Contact placeholder: support@example.invalid
 
 ## Service
 
-LangMate provides profile discovery, reciprocal matching, chat, and basic
+Pairchi provides profile discovery, reciprocal matching, chat, and basic
 safety actions for language exchange. Learning support tools in the current product preview
 are mock previews only and do not provide real AI translation, correction, or
 reply generation.
@@ -41,7 +41,7 @@ attempts to bypass security rules, and illegal activity.
 
 ## Content and Moderation
 
-Users remain responsible for content they submit. LangMate may need to review
+Users remain responsible for content they submit. Pairchi may need to review
 reports, restrict accounts, preserve safety records, or remove content through a
 future admin moderation workflow. Current repository work defines only a
 local/admin data model baseline; it is not a production moderation service.

@@ -1,4 +1,4 @@
-# LangMate Data Retention Policy Draft
+# Pairchi Data Retention Policy Draft
 
 Status: Draft for product planning. Legal review is required before using this
 as a public or internal production retention policy. This document does not
@@ -6,7 +6,7 @@ claim legal compliance is complete.
 
 ## 日本語サマリー
 
-LangMate は、サービス提供、安全確保、不正利用対策、問い合わせ対応のために
+Pairchi は、サービス提供、安全確保、不正利用対策、問い合わせ対応のために
 データを保存する必要があります。一方で、不要になった個人データは削除
 または匿名化できる設計が必要です。具体的な保存期間は法務レビュー後に
 確定する必要があります。
