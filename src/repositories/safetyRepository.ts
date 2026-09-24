@@ -10,6 +10,7 @@ import {
   where,
 } from 'firebase/firestore';
 import { getConfiguredDb, removeUndefinedFields } from './firestoreHelpers';
+import { REPORT_DETAILS_MAX } from '../config/inputLimits';
 import type { Block, Report, ReportReason } from '../types/domain';
 
 const BLOCKS = 'blocks';
@@ -128,12 +129,19 @@ export async function reportUser(
   reason: ReportReason,
   details?: string,
 ): Promise<void> {
+  const trimmedDetails = details?.trim();
+  if (reportedUid === reporterUid) {
+    throw new Error('You cannot report yourself.');
+  }
+  if (trimmedDetails && trimmedDetails.length > REPORT_DETAILS_MAX) {
+    throw new Error(`Report details must be ${REPORT_DETAILS_MAX} characters or fewer.`);
+  }
   const db = getConfiguredDb();
   const report: Report = {
     reporterUid,
     reportedUid,
     reason,
-    details: details?.trim() || undefined,
+    details: trimmedDetails || undefined,
     createdAt: serverTimestamp(),
   };
   await addDoc(collection(db, 'reports'), removeUndefinedFields({ ...report }));

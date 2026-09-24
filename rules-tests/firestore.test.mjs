@@ -94,6 +94,49 @@ await check(
   setDoc(doc(aliceDb(), 'profiles', ALICE), profile(BOB, true)),
 );
 await check(
+  'profile displayName allows 80 characters',
+  'allow',
+  setDoc(doc(aliceDb(), 'profiles', ALICE), {
+    ...profile(ALICE, true),
+    displayName: 'a'.repeat(80),
+  }),
+);
+await check(
+  'profile displayName rejects more than 80 characters',
+  'deny',
+  setDoc(doc(aliceDb(), 'profiles', ALICE), {
+    ...profile(ALICE, true),
+    displayName: 'a'.repeat(81),
+  }),
+);
+await check(
+  'profile bio rejects more than 1000 characters',
+  'deny',
+  setDoc(doc(aliceDb(), 'profiles', ALICE), { ...profile(ALICE, true), bio: 'a'.repeat(1001) }),
+);
+await check(
+  'profile interests rejects more than 10 entries',
+  'deny',
+  setDoc(doc(aliceDb(), 'profiles', ALICE), {
+    ...profile(ALICE, true),
+    interests: Array(11).fill('interest'),
+  }),
+);
+await check(
+  'profile language lists reject counts above their limits',
+  'deny',
+  setDoc(doc(aliceDb(), 'profiles', ALICE), {
+    ...profile(ALICE, true),
+    nativeLangs: ['ja', 'en', 'ko'],
+    targetLangs: ['en'],
+  }),
+);
+await check(
+  'profile rejects unknown fields',
+  'deny',
+  setDoc(doc(aliceDb(), 'profiles', ALICE), { ...profile(ALICE, true), unexpected: true }),
+);
+await check(
   'authed user can read discoverable profile',
   'allow',
   getDoc(doc(aliceDb(), 'profiles', BOB)),
@@ -161,6 +204,17 @@ await check(
     toUid: BOB,
     action: 'love',
     createdAt: new Date(),
+  }),
+);
+await check(
+  'swipe rejects unknown fields',
+  'deny',
+  setDoc(doc(aliceDb(), 'swipes', `${ALICE}_${CAROL}`), {
+    fromUid: ALICE,
+    toUid: CAROL,
+    action: 'connect',
+    createdAt: new Date(),
+    unexpected: true,
   }),
 );
 await check(
@@ -279,6 +333,34 @@ await check(
     fromUid: ALICE,
     text: '',
     createdAt: new Date(),
+  }),
+);
+await check(
+  'message allows 2000 characters',
+  'allow',
+  addDoc(collection(aliceDb(), 'matches', M1, 'messages'), {
+    fromUid: ALICE,
+    text: 'a'.repeat(2000),
+    createdAt: new Date(),
+  }),
+);
+await check(
+  'message rejects more than 2000 characters',
+  'deny',
+  addDoc(collection(aliceDb(), 'matches', M1, 'messages'), {
+    fromUid: ALICE,
+    text: 'a'.repeat(2001),
+    createdAt: new Date(),
+  }),
+);
+await check(
+  'message rejects unknown fields',
+  'deny',
+  addDoc(collection(aliceDb(), 'matches', M1, 'messages'), {
+    fromUid: ALICE,
+    text: 'hello',
+    createdAt: new Date(),
+    unexpected: true,
   }),
 );
 await check(
@@ -505,7 +587,7 @@ await seed(async (db) => {
   await setDoc(doc(db, 'reports', 'seed1'), {
     reporterUid: ALICE,
     reportedUid: BOB,
-    reason: 'test report',
+    reason: 'spam',
     createdAt: new Date(),
   });
 });
@@ -515,7 +597,7 @@ await check(
   addDoc(collection(aliceDb(), 'reports'), {
     reporterUid: ALICE,
     reportedUid: BOB,
-    reason: 'test report',
+    reason: 'spam',
     createdAt: new Date(),
   }),
 );
@@ -530,13 +612,45 @@ await check(
   }),
 );
 await check(
-  'report reason must be non-empty',
+  'report reason must be a supported enum',
   'deny',
   addDoc(collection(aliceDb(), 'reports'), {
     reporterUid: ALICE,
     reportedUid: BOB,
-    reason: '',
+    reason: 'unknown',
     createdAt: new Date(),
+  }),
+);
+await check(
+  'reporter cannot report self',
+  'deny',
+  addDoc(collection(aliceDb(), 'reports'), {
+    reporterUid: ALICE,
+    reportedUid: ALICE,
+    reason: 'spam',
+    createdAt: new Date(),
+  }),
+);
+await check(
+  'report details rejects more than 2000 characters',
+  'deny',
+  addDoc(collection(aliceDb(), 'reports'), {
+    reporterUid: ALICE,
+    reportedUid: BOB,
+    reason: 'spam',
+    details: 'a'.repeat(2001),
+    createdAt: new Date(),
+  }),
+);
+await check(
+  'report rejects unknown fields',
+  'deny',
+  addDoc(collection(aliceDb(), 'reports'), {
+    reporterUid: ALICE,
+    reportedUid: BOB,
+    reason: 'spam',
+    createdAt: new Date(),
+    unexpected: true,
   }),
 );
 await check('normal user cannot read reports', 'deny', getDoc(doc(aliceDb(), 'reports', 'seed1')));
@@ -811,6 +925,22 @@ await check(
     invalidReason: 'signed_out',
     updatedAt: new Date(),
   }),
+);
+await check(
+  'push token rejects more than 4096 characters',
+  'deny',
+  setDoc(
+    doc(aliceDb(), 'users', ALICE, 'pushTokens', 'long-token'),
+    pushToken(ALICE, 'long-token', { token: 'a'.repeat(4097) }),
+  ),
+);
+await check(
+  'push token rejects deviceId longer than 128 characters',
+  'deny',
+  setDoc(
+    doc(aliceDb(), 'users', ALICE, 'pushTokens', 'a'.repeat(129)),
+    pushToken(ALICE, 'a'.repeat(129)),
+  ),
 );
 await check(
   'unauthenticated push token access is denied',
