@@ -99,17 +99,25 @@ export async function processDeletion(
     const images = await (adapter?.deletePrefix?.(uid) ?? deletePrefix(uid));
     await db.doc(`profiles/${uid}`).delete();
     adapter?.observe?.('blocks');
-    await db
-      .collection('blocks')
-      .get()
-      .then((s) =>
-        Promise.all(
-          s.docs
-            .filter((x) => x.id.startsWith(uid + '_') || x.id.endsWith('_' + uid))
-            .map((x) => x.ref.delete()),
-        ),
-      );
+    const [outgoingBlocks, incomingBlocks] = await Promise.all([
+      db.collection('blocks').where('blockerUid', '==', uid).get(),
+      db.collection('blocks').where('blockedUid', '==', uid).get(),
+    ]);
+    const blocks = new Map();
+    for (const snapshot of [outgoingBlocks, incomingBlocks]) {
+      for (const block of snapshot.docs) blocks.set(block.ref.path, block.ref);
+    }
+    await Promise.all([...blocks.values()].map((block) => block.delete()));
     await audit(db, uid, 'data_cleanup', 'completed', attempt, { tokens: tokens.size, images });
+    adapter?.observe?.('auth');
+    try {
+      if (adapter?.deleteAuth) await adapter.deleteAuth(uid);
+      else await getAuth().deleteUser(uid);
+    } catch (e: any) {
+      if (e?.code !== 'auth/user-not-found') throw e;
+    }
+    adapter?.observe?.('completion_audit');
+    await audit(db, uid, 'completion', 'completed', attempt);
     await ref.update({
       status: 'completed',
       completedAt: FieldValue.serverTimestamp(),
@@ -123,14 +131,7 @@ export async function processDeletion(
         auth: 'completed',
       },
     });
-    adapter?.observe?.('auth');
-    try {
-      if (adapter?.deleteAuth) await adapter.deleteAuth(uid);
-      else await getAuth().deleteUser(uid);
-    } catch (e: any) {
-      if (e?.code !== 'auth/user-not-found') throw e;
-    }
-    await audit(db, uid, 'completion', 'completed', attempt);
+    adapter?.observe?.('completed');
   } catch (_error: any) {
     const terminal = attempt >= MAX_ATTEMPTS;
     await ref.set(
