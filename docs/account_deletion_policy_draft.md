@@ -1,4 +1,4 @@
-# LangMate Account Deletion Policy Draft
+# Pairchi Account Deletion Policy Draft
 
 Status: Draft for product planning. Legal review is required before using this
 as a public account deletion policy. This does not claim GDPR, APPI, App Store,
@@ -7,7 +7,7 @@ or Play Store compliance is complete.
 ## 日本語サマリー
 
 ユーザーはアカウント削除をリクエストできる必要があります。現時点の
-LangMate では、`accountDeletionRequests/{uid}` に削除リクエストを保存する
+Pairchi では、`accountDeletionRequests/{uid}` に削除リクエストを保存する
 ための安全なベースラインだけを追加しています。実データ削除はまだ
 実装していません。
 

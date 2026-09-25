@@ -73,7 +73,7 @@ export function makeMessagePayload(
   return {
     title: 'New message',
     // Deliberately never derive this from message text; lock-screen content is private.
-    body: 'You have a new message in LangMate.',
+    body: 'You have a new message in Pairchi.',
     data: input,
   };
 }

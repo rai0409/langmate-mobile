@@ -1,4 +1,4 @@
-# LangMate Mobile Production Readiness Inventory
+# Pairchi Mobile Production Readiness Inventory
 
 Repository-only assessment date: 2026-07-26. This inventory deliberately does
 not treat a source file, local test, or draft document as proof of a production
@@ -257,7 +257,7 @@ or deterministic CI command; it does **not** mean verified in production.
 | Item | Status | Evidence or absence |
 | --- | --- | --- |
 | Expo app manifest | VERIFIED | `app.json` exists. |
-| Name/slug/version | VERIFIED | `app.json`: `langexchange_mobile`, version `1.0.0`. |
+| Name/slug/version | VERIFIED | `app.json`: name `Pairchi`, slug `pairchi`, version `1.0.0`. |
 | Icon/splash/adaptive icon | PARTIALLY VERIFIED | `assets/icon.png`, `assets/splash-icon.png`, Android adaptive-icon assets are referenced; no native/store validation evidence. |
 | Android package name | NOT IMPLEMENTED | No `android.package` in `app.json`. |
 | iOS bundle identifier | NOT IMPLEMENTED | No `ios.bundleIdentifier` in `app.json`. |
