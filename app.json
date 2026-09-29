@@ -36,6 +36,12 @@
       ],
       "expo-status-bar"
     ],
-    "scheme": "pairchi"
+    "scheme": "pairchi",
+    "extra": {
+      "eas": {
+        "projectId": "00153bb5-b3ef-4082-a161-62923bab30e3"
+      }
+    },
+    "owner": "rai0409"
   }
 }
