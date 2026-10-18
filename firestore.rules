@@ -50,6 +50,20 @@ service cloud.firestore {
       return signedIn() && request.auth.uid in memberUids;
     }
 
+    // A block applies in either direction. Keep this as direct document
+    // lookups: the established block id is {blockerUid}_{blockedUid}.
+    function isBlockedBetween(uidA, uidB) {
+      let forwardBlockId = uidA + '_' + uidB;
+      let reverseBlockId = uidB + '_' + uidA;
+      return exists(/databases/$(database)/documents/blocks/$(forwardBlockId))
+        || exists(/databases/$(database)/documents/blocks/$(reverseBlockId));
+    }
+
+    function matchIsBlocked(memberUids) {
+      return memberUids.size() != 2
+        || isBlockedBetween(memberUids[0], memberUids[1]);
+    }
+
     // ----------------------------------------------------------
     // profiles/{uid} — main profile, always keyed by the auth uid.
     // ----------------------------------------------------------
@@ -140,7 +154,10 @@ service cloud.firestore {
         && request.resource.data.toUid != request.auth.uid
         && request.resource.data.action in ['connect', 'skip']
         && request.resource.data.createdAt is timestamp
-        && swipeId == request.resource.data.fromUid + '_' + request.resource.data.toUid;
+        && swipeId == request.resource.data.fromUid + '_' + request.resource.data.toUid
+        // Skip remains available after a block; Connect does not.
+        && (request.resource.data.action != 'connect'
+          || !isBlockedBetween(request.resource.data.fromUid, request.resource.data.toUid));
       // The mutual-connect check reads the incoming swipe via get(); that doc
       // may not exist yet, so allow a get on a non-existent swipe (returns
       // "not found", leaks nothing). For an existing swipe, only the two
@@ -172,6 +189,7 @@ service cloud.firestore {
       // Members may update only the chat-summary fields; membership is
       // immutable from the client (memberUids can never be in the diff).
       allow update: if isMember(resource.data.memberUids)
+        && !matchIsBlocked(resource.data.memberUids)
         && request.resource.data.diff(resource.data).affectedKeys()
              .hasOnly(['lastMessage', 'lastSentAt', 'updatedAt']);
       allow delete: if false;
@@ -188,6 +206,7 @@ service cloud.firestore {
         allow read: if isMember(matchMembers());
         // Members create their own messages with non-empty text.
         allow create: if isMember(matchMembers())
+          && !matchIsBlocked(matchMembers())
           && request.resource.data.keys().hasOnly(['fromUid', 'text', 'createdAt'])
           && request.resource.data.fromUid == request.auth.uid
           && request.resource.data.text is string
@@ -252,8 +271,17 @@ service cloud.firestore {
     // ----------------------------------------------------------
     match /blocks/{blockId} {
       // Only the blocker creates their own block; doc id must match contents.
-      allow create, update: if signedIn()
+      allow create: if signedIn()
         && request.resource.data.blockerUid == request.auth.uid
+        && request.resource.data.blockedUid is string
+        && request.resource.data.blockedUid != request.auth.uid
+        && blockId == request.resource.data.blockerUid + '_' + request.resource.data.blockedUid;
+      // Re-blocking the same pair is allowed, but a block document can never
+      // be repurposed to point at another pair.
+      allow update: if signedIn()
+        && request.resource.data.blockerUid == request.auth.uid
+        && request.resource.data.blockerUid == resource.data.blockerUid
+        && request.resource.data.blockedUid == resource.data.blockedUid
         && request.resource.data.blockedUid is string
         && request.resource.data.blockedUid != request.auth.uid
         && blockId == request.resource.data.blockerUid + '_' + request.resource.data.blockedUid;

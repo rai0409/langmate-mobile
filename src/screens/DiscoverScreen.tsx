@@ -26,6 +26,7 @@ import { logDevError } from '../utils/logging';
 import { notify } from '../utils/notify';
 
 const PREVIEW_LABEL = 'Preview data';
+type BlockStatus = 'loading' | 'ready' | 'failed';
 
 export function DiscoverScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
@@ -37,33 +38,38 @@ export function DiscoverScreen() {
   const [loading, setLoading] = useState(true);
   const [hiddenUids, setHiddenUids] = useState<Set<string>>(new Set());
   const [blockWarning, setBlockWarning] = useState<string | null>(null);
+  const [blockStatus, setBlockStatus] = useState<BlockStatus>('loading');
 
   const currentProfile = profile ?? MOCK_CURRENT_PROFILE;
 
   const load = useCallback(async () => {
     setLoading(true);
+    setBlockStatus(hasFirebaseConfig() ? 'loading' : 'ready');
+    setBlockWarning(null);
     try {
       let pool: { profiles: typeof MOCK_PROFILES; preview: boolean } = {
         profiles: MOCK_PROFILES,
         preview: true,
       };
       if (hasFirebaseConfig()) {
-        // Block filtering is best-effort here: if the block query fails,
-        // Discover still renders, with a visible warning instead of a crash.
-        let blockSets: BlockSets = {
-          blockedByMe: new Set(),
-          blockedMe: new Set(),
-        };
-        if (currentUser) {
-          try {
-            blockSets = toBlockSets(currentUser.uid, await listBlocksForUser(currentUser.uid));
-            setBlockWarning(null);
-          } catch (e) {
-            logDevError('DiscoverScreen.loadBlocks', e);
-            setBlockWarning(
-              'Could not load your block list — some blocked users may appear until you reload.',
-            );
-          }
+        if (!currentUser) {
+          setCandidates([]);
+          setIsPreview(false);
+          setBlockStatus('failed');
+          setBlockWarning('Could not verify your block list. Please reload and try again.');
+          return;
+        }
+        let blockSets: BlockSets;
+        try {
+          blockSets = toBlockSets(currentUser.uid, await listBlocksForUser(currentUser.uid));
+          setBlockStatus('ready');
+        } catch (e) {
+          logDevError('DiscoverScreen.loadBlocks', e);
+          setCandidates([]);
+          setIsPreview(false);
+          setBlockStatus('failed');
+          setBlockWarning('Could not load your block list. Reload to try again.');
+          return;
         }
         const real = await listDiscoverableProfiles();
         const others = real.filter(
@@ -78,8 +84,13 @@ export function DiscoverScreen() {
     } catch (e) {
       logDevError('DiscoverScreen.load', e);
       notify('Could not load profiles', getErrorMessage(e));
-      setIsPreview(true);
-      setCandidates(filterAndRankCandidates(currentProfile, MOCK_PROFILES));
+      if (hasFirebaseConfig()) {
+        setIsPreview(false);
+        setCandidates([]);
+      } else {
+        setIsPreview(true);
+        setCandidates(filterAndRankCandidates(currentProfile, MOCK_PROFILES));
+      }
     } finally {
       setLoading(false);
     }
@@ -135,6 +146,7 @@ export function DiscoverScreen() {
   };
 
   const visible = candidates.filter((c) => !hiddenUids.has(c.profile.uid));
+  const blockVerificationFailed = hasFirebaseConfig() && blockStatus === 'failed';
 
   if (loading) {
     return <LoadingScreen message="Finding language partners..." />;
@@ -145,8 +157,12 @@ export function DiscoverScreen() {
       {blockWarning ? <Text style={styles.blockWarning}>{blockWarning}</Text> : null}
       {visible.length === 0 ? (
         <EmptyState
-          title="No more partners right now"
-          message="You have seen everyone available. Pull to refresh or check back later."
+          title={blockVerificationFailed ? 'Partners unavailable' : 'No more partners right now'}
+          message={
+            blockVerificationFailed
+              ? 'Reload to verify your block list before viewing partners.'
+              : 'You have seen everyone available. Pull to refresh or check back later.'
+          }
           actionTitle="Reload"
           onAction={() => {
             setHiddenUids(new Set());
