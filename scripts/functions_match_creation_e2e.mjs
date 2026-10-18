@@ -5,6 +5,8 @@ const userA = 'functions-match-e2e-user-a';
 const userB = 'functions-match-e2e-user-b';
 const skipUserA = 'functions-match-e2e-skip-user-a';
 const skipUserB = 'functions-match-e2e-skip-user-b';
+const blockedUserA = 'functions-match-e2e-blocked-user-a';
+const blockedUserB = 'functions-match-e2e-blocked-user-b';
 
 if (!process.env.FIRESTORE_EMULATOR_HOST) {
   console.error(
@@ -49,11 +51,14 @@ async function clearPair(fromUid, toUid) {
   await db.doc(`swipes/${buildSwipeId(fromUid, toUid)}`).delete();
   await db.doc(`swipes/${buildSwipeId(toUid, fromUid)}`).delete();
   await db.doc(`matches/${buildMatchId(fromUid, toUid)}`).delete();
+  await db.doc(`blocks/${buildSwipeId(fromUid, toUid)}`).delete();
+  await db.doc(`blocks/${buildSwipeId(toUid, fromUid)}`).delete();
 }
 
 async function clearTestDocuments() {
   await clearPair(userA, userB);
   await clearPair(skipUserA, skipUserB);
+  await clearPair(blockedUserA, blockedUserB);
 }
 
 async function writeSwipe(fromUid, toUid, action) {
@@ -69,6 +74,14 @@ async function readMatch(uidA, uidB) {
   const matchId = buildMatchId(uidA, uidB);
   const snapshot = await db.doc(`matches/${matchId}`).get();
   return snapshot.exists ? { id: snapshot.id, ...snapshot.data() } : null;
+}
+
+async function writeBlock(blockerUid, blockedUid) {
+  await db.doc(`blocks/${buildSwipeId(blockerUid, blockedUid)}`).set({
+    blockerUid,
+    blockedUid,
+    createdAt: FieldValue.serverTimestamp(),
+  });
 }
 
 async function pollForMatch(uidA, uidB, timeoutMs = 10000) {
@@ -165,6 +178,25 @@ try {
   await writeSwipe(skipUserB, skipUserA, 'skip');
   await verifyNoMatch(skipUserA, skipUserB);
   console.log('PASS functions match creation E2E: skip did not match');
+
+  console.log('functions match creation E2E: case 5 blocked mutual connect');
+  await writeBlock(blockedUserA, blockedUserB);
+  await writeSwipe(blockedUserA, blockedUserB, 'connect');
+  await writeSwipe(blockedUserB, blockedUserA, 'connect');
+  await verifyNoMatch(blockedUserA, blockedUserB);
+  console.log('PASS functions match creation E2E: blocked mutual connect did not match');
+
+  console.log('functions match creation E2E: case 6 block prevents existing-match rewrite');
+  const beforeBlockRewrite = await readMatch(userA, userB);
+  await writeBlock(userA, userB);
+  await writeSwipe(userA, userB, 'connect');
+  await sleep(1500);
+  const afterBlockRewrite = await readMatch(userA, userB);
+  assertValidMatch(afterBlockRewrite, userA, userB);
+  if (!timestampsEqual(beforeBlockRewrite.updatedAt, afterBlockRewrite.updatedAt)) {
+    throw new Error('updatedAt changed after a blocked swipe rewrite');
+  }
+  console.log('PASS functions match creation E2E: blocked rewrite did not update existing match');
 } catch (error) {
   console.error(
     `FAIL functions match creation E2E: ${error instanceof Error ? error.message : error}`,

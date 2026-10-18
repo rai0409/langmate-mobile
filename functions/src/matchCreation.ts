@@ -45,12 +45,27 @@ export const createMatchForMutualConnect = onDocumentWritten('swipes/{swipeId}',
 
   const db = getFirestore();
   const reverseSwipeRef = db.doc(`swipes/${buildSwipeId(toUid, fromUid)}`);
+  const outgoingBlockRef = db.doc(`blocks/${buildSwipeId(fromUid, toUid)}`);
+  const incomingBlockRef = db.doc(`blocks/${buildSwipeId(toUid, fromUid)}`);
   const matchId = buildMatchId(fromUid, toUid);
   const matchRef = db.doc(`matches/${matchId}`);
   const memberUids = [fromUid, toUid].sort();
 
   await db.runTransaction(async (transaction) => {
-    const reverseSwipeSnapshot = await transaction.get(reverseSwipeRef);
+    // Firestore transactions require all reads before writes. Read both block
+    // directions before considering the reciprocal swipe or existing match.
+    const [outgoingBlockSnapshot, incomingBlockSnapshot, reverseSwipeSnapshot, matchSnapshot] =
+      await Promise.all([
+        transaction.get(outgoingBlockRef),
+        transaction.get(incomingBlockRef),
+        transaction.get(reverseSwipeRef),
+        transaction.get(matchRef),
+      ]);
+
+    if (outgoingBlockSnapshot.exists || incomingBlockSnapshot.exists) {
+      return;
+    }
+
     if (!reverseSwipeSnapshot.exists) {
       return;
     }
@@ -64,7 +79,6 @@ export const createMatchForMutualConnect = onDocumentWritten('swipes/{swipeId}',
       return;
     }
 
-    const matchSnapshot = await transaction.get(matchRef);
     const timestamp = FieldValue.serverTimestamp();
     const existingCreatedAt = matchSnapshot.exists ? matchSnapshot.data()?.createdAt : undefined;
 

@@ -28,6 +28,7 @@ const EMPTY_BLOCK_SETS: BlockSets = {
   blockedByMe: new Set<string>(),
   blockedMe: new Set<string>(),
 };
+type BlockStatus = 'loading' | 'ready' | 'failed';
 
 interface MatchRow {
   match: Match;
@@ -44,6 +45,9 @@ export function MatchesScreen() {
   const [loading, setLoading] = useState(true);
   const [blockSets, setBlockSets] = useState<BlockSets>(EMPTY_BLOCK_SETS);
   const [warning, setWarning] = useState<string | null>(null);
+  const [blockStatus, setBlockStatus] = useState<BlockStatus>('loading');
+  const [blockOwnerUid, setBlockOwnerUid] = useState<string | null>(null);
+  const [blockRetry, setBlockRetry] = useState(0);
   const [unreadByMatch, setUnreadByMatch] = useState<Record<string, number>>({});
 
   useEffect(() => {
@@ -52,6 +56,7 @@ export function MatchesScreen() {
       setLoading(false);
       return;
     }
+    let cancelled = false;
     const profileCache = new Map<string, Profile | null>();
     const unsubscribe = listenMatchesForUser(
       currentUser.uid,
@@ -78,18 +83,25 @@ export function MatchesScreen() {
               };
             }),
           );
-          setRows(next);
-          setLoading(false);
+          if (!cancelled) {
+            setRows(next);
+            setLoading(false);
+          }
         })();
       },
       (error) => {
         logDevError('MatchesScreen.listenMatches', error);
-        setWarning('Could not load matches. Pull down or reopen this tab to retry.');
-        setLoading(false);
+        if (!cancelled) {
+          setWarning('Could not load matches. Pull down or reopen this tab to retry.');
+          setLoading(false);
+        }
       },
     );
-    return unsubscribe;
-  }, [currentUser]);
+    return () => {
+      cancelled = true;
+      unsubscribe();
+    };
+  }, [currentUser, blockRetry]);
 
   useEffect(() => {
     if (!currentUser || !hasFirebaseConfig()) {
@@ -141,31 +153,57 @@ export function MatchesScreen() {
   useEffect(() => {
     if (!currentUser || !hasFirebaseConfig()) {
       setBlockSets(EMPTY_BLOCK_SETS);
+      setBlockStatus('ready');
+      setBlockOwnerUid(null);
       return;
     }
-    // Block filtering is best-effort: a failed block listener keeps the
-    // screen usable and shows a warning instead of hiding all matches.
+    setBlockSets(EMPTY_BLOCK_SETS);
+    setBlockStatus('loading');
+    setBlockOwnerUid(currentUser.uid);
+    setWarning(null);
     const unsubscribe = listenBlocksForUser(
       currentUser.uid,
       (blocks) => {
         setBlockSets(toBlockSets(currentUser.uid, blocks));
+        setBlockStatus('ready');
       },
       (error) => {
         logDevError('MatchesScreen.listenBlocks', error);
-        setWarning('Could not load your block list — matches with blocked users may still appear.');
+        setRows([]);
+        setUnreadByMatch({});
+        setBlockSets(EMPTY_BLOCK_SETS);
+        setBlockStatus('failed');
+        setWarning('Could not load your block list. Retry to view matches.');
       },
     );
     return unsubscribe;
-  }, [currentUser]);
+  }, [currentUser, blockRetry]);
 
   // Hide matches with a blocked partner (either direction). Rows whose
   // partner uid could not be resolved stay visible rather than crashing.
-  const visibleRows = rows.filter(
-    (row) => !row.partnerUid || !isUidBlocked(blockSets, row.partnerUid),
-  );
+  const blocksReady =
+    !hasFirebaseConfig() || (blockStatus === 'ready' && blockOwnerUid === currentUser?.uid);
+  const visibleRows = blocksReady
+    ? rows.filter((row) => Boolean(row.partnerUid) && !isUidBlocked(blockSets, row.partnerUid))
+    : [];
 
   if (loading) {
     return <LoadingScreen message="Loading your matches..." />;
+  }
+
+  if (hasFirebaseConfig() && !blocksReady) {
+    return (
+      <View style={styles.screen}>
+        <EmptyState
+          title={blockStatus === 'failed' ? 'Matches unavailable' : 'Loading your matches...'}
+          message={warning ?? 'Verifying your block list before showing matches.'}
+          actionTitle={blockStatus === 'failed' ? 'Retry' : undefined}
+          onAction={
+            blockStatus === 'failed' ? () => setBlockRetry((value) => value + 1) : undefined
+          }
+        />
+      </View>
+    );
   }
 
   if (visibleRows.length === 0) {

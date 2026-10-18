@@ -423,6 +423,162 @@ await check(
 }
 
 // =========================================================
+// block enforcement for Connect, chat writes, and summaries
+// =========================================================
+console.log('block enforcement:');
+await testEnv.clearFirestore();
+await seed(async (db) => {
+  await setDoc(doc(db, 'matches', M1), {
+    matchId: M1,
+    memberUids: [ALICE, BOB],
+    createdAt: new Date(),
+  });
+});
+await check(
+  'unblocked user can create connect swipe',
+  'allow',
+  setDoc(doc(aliceDb(), 'swipes', `${ALICE}_${BOB}`), {
+    fromUid: ALICE,
+    toUid: BOB,
+    action: 'connect',
+    createdAt: new Date(),
+  }),
+);
+await check(
+  'unblocked recipient can create message',
+  'allow',
+  addDoc(collection(bobDb(), 'matches', M1, 'messages'), {
+    fromUid: BOB,
+    text: 'hello from bob',
+    createdAt: new Date(),
+  }),
+);
+await check(
+  'unblocked recipient can update match summary',
+  'allow',
+  updateDoc(doc(bobDb(), 'matches', M1), { lastMessage: 'hello from bob', lastSentAt: new Date() }),
+);
+
+await seed(async (db) => {
+  await setDoc(doc(db, 'blocks', `${ALICE}_${BOB}`), {
+    blockerUid: ALICE,
+    blockedUid: BOB,
+    createdAt: new Date(),
+  });
+});
+for (const [name, db, fromUid, toUid] of [
+  ['blocker', aliceDb(), ALICE, BOB],
+  ['blocked user', bobDb(), BOB, ALICE],
+]) {
+  await check(
+    `A-to-B block denies ${name} connect`,
+    'deny',
+    setDoc(doc(db, 'swipes', `${fromUid}_${toUid}`), {
+      fromUid,
+      toUid,
+      action: 'connect',
+      createdAt: new Date(),
+    }),
+  );
+  await check(
+    `A-to-B block denies ${name} message`,
+    'deny',
+    addDoc(collection(db, 'matches', M1, 'messages'), {
+      fromUid,
+      text: 'blocked message',
+      createdAt: new Date(),
+    }),
+  );
+  await check(
+    `A-to-B block denies ${name} match summary`,
+    'deny',
+    updateDoc(doc(db, 'matches', M1), { lastMessage: 'blocked', lastSentAt: new Date() }),
+  );
+}
+{
+  const db = aliceDb();
+  const messageRef = doc(collection(db, 'matches', M1, 'messages'));
+  const batch = writeBatch(db);
+  batch.set(messageRef, { fromUid: ALICE, text: 'blocked batch', createdAt: new Date() });
+  batch.set(
+    doc(db, 'matches', M1),
+    { lastMessage: 'blocked batch', lastSentAt: new Date() },
+    { merge: true },
+  );
+  await check('A-to-B block denies message and summary batch', 'deny', batch.commit());
+  await check(
+    'denied blocked batch leaves no partial message',
+    'allow',
+    getDoc(messageRef).then((snapshot) => {
+      if (snapshot.exists()) throw new Error('blocked batch left a message behind');
+    }),
+  );
+}
+await check(
+  'A-to-B block still allows skip',
+  'allow',
+  setDoc(doc(aliceDb(), 'swipes', `${ALICE}_${CAROL}`), {
+    fromUid: ALICE,
+    toUid: CAROL,
+    action: 'skip',
+    createdAt: new Date(),
+  }),
+);
+await check(
+  'A-to-B block keeps existing match readable',
+  'allow',
+  getDoc(doc(aliceDb(), 'matches', M1)),
+);
+await check(
+  'A-to-B block keeps existing messages readable',
+  'allow',
+  getDocs(collection(bobDb(), 'matches', M1, 'messages')),
+);
+
+await testEnv.clearFirestore();
+await seed(async (db) => {
+  await setDoc(doc(db, 'matches', M1), {
+    matchId: M1,
+    memberUids: [ALICE, BOB],
+    createdAt: new Date(),
+  });
+  await setDoc(doc(db, 'blocks', `${BOB}_${ALICE}`), {
+    blockerUid: BOB,
+    blockedUid: ALICE,
+    createdAt: new Date(),
+  });
+});
+for (const [name, db, fromUid, toUid] of [
+  ['A', aliceDb(), ALICE, BOB],
+  ['B', bobDb(), BOB, ALICE],
+]) {
+  await check(
+    `B-to-A block denies ${name} connect`,
+    'deny',
+    setDoc(doc(db, 'swipes', `${fromUid}_${toUid}`), {
+      fromUid,
+      toUid,
+      action: 'connect',
+      createdAt: new Date(),
+    }),
+  );
+  await check(
+    `B-to-A block denies ${name} message`,
+    'deny',
+    addDoc(collection(db, 'matches', M1, 'messages'), {
+      fromUid,
+      text: 'blocked reverse message',
+      createdAt: new Date(),
+    }),
+  );
+  await check(
+    `B-to-A block denies ${name} match summary`,
+    'deny',
+    updateDoc(doc(db, 'matches', M1), { lastMessage: 'blocked reverse', lastSentAt: new Date() }),
+  );
+}
+
+// =========================================================
 // memberStates (subcollection of matches/M1, members alice+bob)
 // =========================================================
 console.log('memberStates:');
@@ -577,6 +733,21 @@ await check(
 await check('blocker can read own block', 'allow', getDoc(doc(aliceDb(), 'blocks', BLOCK_ID)));
 await check('blocked user can read the block', 'allow', getDoc(doc(bobDb(), 'blocks', BLOCK_ID)));
 await check('unrelated user cannot read block', 'deny', getDoc(doc(carolDb(), 'blocks', BLOCK_ID)));
+await check(
+  'blocker can re-block the same pair',
+  'allow',
+  updateDoc(doc(aliceDb(), 'blocks', BLOCK_ID), { createdAt: new Date() }),
+);
+await check(
+  'block document cannot change blocked uid',
+  'deny',
+  updateDoc(doc(aliceDb(), 'blocks', BLOCK_ID), { blockedUid: CAROL }),
+);
+await check(
+  'block document cannot change blocker uid',
+  'deny',
+  updateDoc(doc(aliceDb(), 'blocks', BLOCK_ID), { blockerUid: BOB }),
+);
 
 // =========================================================
 // reports
