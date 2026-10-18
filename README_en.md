@@ -10,8 +10,8 @@ exchange apps. No third-party branding, UI, text, or assets are copied.
 
 ## Tech stack
 
-- Expo SDK 56 (managed workflow)
-- React Native 0.85 + React 19
+- Expo SDK 57 (managed workflow)
+- React Native 0.86.3 + React 19.2.3
 - TypeScript (strict)
 - Firebase Auth (email/password)
 - Cloud Firestore (profiles, swipes, matches, messages, blocks, reports)
